@@ -2,7 +2,6 @@ import pandas as pd
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from tkinter import filedialog, messagebox
-import json
 from datetime import datetime
 
 class GeneradorReportes:
@@ -23,33 +22,15 @@ class GeneradorReportes:
             messagebox.showerror("Error", f"No se pudo exportar: {e}")
 
     @staticmethod
-    def exportar_json(datos, columnas, nombre_archivo):
-        try:
-            # Convertimos a lista de diccionarios
-            lista_dicts = [dict(zip(columnas, fila)) for fila in datos]
-            
-            path = filedialog.asksaveasfilename(defaultextension=".json", 
-                filetypes=[("JSON files", "*.json")],
-                initialfile=f"{nombre_archivo}_{datetime.now().strftime('%Y%m%d')}")
-            if path:
-                with open(path, 'w', encoding='utf-8') as f:
-                    json.dump(lista_dicts, f, indent=4, default=str) # default=str para fechas
-                messagebox.showinfo("Éxito", f"Archivo JSON guardado en:\n{path}")
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo exportar: {e}")
-
-    @staticmethod
     def exportar_pdf(datos, columnas, titulo, nombre_archivo):
         try:
             path = filedialog.asksaveasfilename(defaultextension=".pdf", 
                 filetypes=[("PDF files", "*.pdf")],
                 initialfile=f"{nombre_archivo}_{datetime.now().strftime('%Y%m%d')}")
             if not path: return
-
             c = canvas.Canvas(path, pagesize=letter)
             width, height = letter
             y = height - 50
-
             # Título
             c.setFont("Helvetica-Bold", 16)
             c.drawString(50, y, titulo)

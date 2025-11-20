@@ -5,39 +5,63 @@ from controller.reportes import GeneradorReportes
 from model import clienteBD, ventaBD, usuarioBD
 import os
 
-# --- PALETA DE COLORES ---
-COLOR_FONDO      = "#F3E5F5"
-COLOR_PANEL      = "#E1BEE7"
-COLOR_BOTON      = "#8E44AD"
-COLOR_TEXTO      = "#4A235A"
-COLOR_BLANCO     = "#FFFFFF"
+# --- PALETA DE COLORES BOUTIQUE ---
+BG_APP           = "#F3E5F5"
+BG_PANEL         = "#FFFFFF"
+COLOR_PRIMARY    = "#8E44AD"
+COLOR_SECONDARY  = "#9B59B6"
+COLOR_TEXT_MAIN  = "#4A235A"
+COLOR_LILA_INPUT = "#E8DAEF"
+COLOR_BORDER     = "#D2B4DE"
+
+BTN_EDIT_COLOR   = "#5B2C6F"
+BTN_DELETE_COLOR = "#943126"
+BTN_X_COLOR      = "#C0392B"
+
+FONT_TITLE       = ("Segoe UI", 28, "bold") 
+FONT_SUBTITLE    = ("Segoe UI", 16)
+FONT_BODY        = ("Segoe UI", 11) 
+FONT_BOLD        = ("Segoe UI", 11, "bold")
 
 class Vista:
-    # Variable de clase para guardar el logo y que todos los métodos estáticos lo vean
     logo_img = None 
 
     def __init__(self, window):
         self.window = window
-        self.window.title("Bonitas Fashions - Sistema de Gestión")
-        self.window.geometry("1150x750")
-        self.window.config(bg=COLOR_FONDO)
+        self.window.title("Bonitas Fashions - Manager")
+        self.window.geometry("1200x800")
+        self.window.config(bg=BG_APP)
         
-        # Cargar Logo una sola vez al iniciar
         try:
             if os.path.exists("logo.png"):
                 img_temp = tk.PhotoImage(file="logo.png")
                 Vista.logo_img = img_temp.subsample(3, 3) 
         except Exception as e:
-            print(f"Nota: No se encontró logo.png ({e})")
+            print(f"Nota: No se encontró logo.png")
 
-        # Estilos de Tabla
+        # --- ESTILOS MODERNOS (CORREGIDOS PARA COMBOBOX) ---
         style = ttk.Style()
         style.theme_use("clam")
-        style.configure("Treeview", background=COLOR_BLANCO, foreground="black", rowheight=25, fieldbackground=COLOR_BLANCO, font=("Arial", 10))
-        style.map('Treeview', background=[('selected', COLOR_BOTON)])
-        style.configure("Treeview.Heading", background=COLOR_PANEL, foreground=COLOR_TEXTO, font=("Arial", 10, "bold"))
         
-        # Arrancamos con Login
+        # Tabla
+        style.configure("Treeview", background="white", foreground="#333", rowheight=35, fieldbackground="white", borderwidth=0, font=("Segoe UI", 10))
+        style.configure("Treeview.Heading", background="#E8DAEF", foreground=COLOR_TEXT_MAIN, borderwidth=0, font=("Segoe UI", 11, "bold"))
+        style.map('Treeview', background=[('selected', COLOR_PRIMARY)])
+        
+        # --- ARREGLO DEL COMBOBOX GRIS ---
+        # Configuramos para que el campo (field) sea blanco siempre
+        style.configure("TCombobox", 
+                        fieldbackground="white", 
+                        background="white", 
+                        arrowcolor=COLOR_PRIMARY, # Flechita morada
+                        borderwidth=1,
+                        relief="solid")
+        
+        # Mapeo para cuando está activo/readonly (evitar gris)
+        style.map('TCombobox', fieldbackground=[('readonly', 'white')],
+            selectbackground=[('readonly', 'white')],
+            selectforeground=[('readonly', COLOR_TEXT_MAIN)])
+
         Vista.login(window)
     
     @staticmethod
@@ -45,271 +69,227 @@ class Vista:
         for widget in window.winfo_children():
             if isinstance(widget, tk.Menu): continue
             widget.destroy()
-    
+
+    @staticmethod
+    def btn_moderno(parent, text, command, color=COLOR_PRIMARY, width=15, height=1):
+        return tk.Button(parent, text=text, command=command,
+            bg=color, fg="white", font=("Segoe UI", 10, "bold"),
+            bd=0, highlightthickness=0, padx=15, pady=10, cursor="hand2",
+            activebackground="#4A235A", activeforeground="white")
+
+    # --- HELPER: INPUT VISIBLE ---
+    @staticmethod
+    def entry_visible(parent, variable, show=None, justify="left"):
+        e = tk.Entry(parent, textvariable=variable, show=show, justify=justify,
+            font=("Segoe UI", 11), bg="white", bd=1, relief="solid", fg=COLOR_TEXT_MAIN)
+        e.config(highlightthickness=1, highlightbackground=COLOR_BORDER, highlightcolor=COLOR_PRIMARY)
+        e.pack(fill="x", ipady=6)
+
     # ==========================================
-    # PANTALLA 1: LOGIN
+    # 1. LOGIN
     # ==========================================
     @staticmethod
     def login(window):
         Vista.borrarPantalla(window)
-        window.config(menu=tk.Menu(window), bg=COLOR_FONDO)
-
-        frame = tk.Frame(window, bg=COLOR_BLANCO, padx=40, pady=40, bd=1, relief="solid")
-        frame.pack(expand=True)
-
-        # Usamos Vista.logo_img (Variable de clase)
-        if Vista.logo_img:
-            lbl_img = tk.Label(frame, image=Vista.logo_img, bg=COLOR_BLANCO)
-            lbl_img.pack(pady=(0, 10))
-
-        tk.Label(frame, text="Bonitas Fashions", font=("Gabriola", 30, "bold"), bg=COLOR_BLANCO, fg=COLOR_BOTON).pack()
-        tk.Label(frame, text="Acceso al Sistema", font=("Arial", 11), bg=COLOR_BLANCO, fg="gray").pack(pady=(0, 20))
-
-        tk.Label(frame, text="Correo:", bg=COLOR_BLANCO, fg=COLOR_TEXTO, font=("Arial", 10, "bold")).pack(anchor="w")
-        correo = tk.Entry(frame, width=30, font=("Arial", 11), bg="#F4F6F6", bd=1, relief="solid")
-        correo.pack(pady=5, ipady=3)
-
-        tk.Label(frame, text="Contraseña:", bg=COLOR_BLANCO, fg=COLOR_TEXTO, font=("Arial", 10, "bold")).pack(anchor="w")
-        password = tk.Entry(frame, show="*", width=30, font=("Arial", 11), bg="#F4F6F6", bd=1, relief="solid")
-        password.pack(pady=5, ipady=3)
-
-        tk.Button(frame, text="INICIAR SESIÓN", bg=COLOR_BOTON, fg="white", width=25, height=2, font=("Arial", 10, "bold"), cursor="hand2",
-            command=lambda: funciones.Funciones.ingresar(window, correo.get(), password.get())).pack(pady=20)
-        
-        tk.Button(frame, text="Crear cuenta nueva", fg=COLOR_BOTON, bg=COLOR_BLANCO, bd=0, cursor="hand2", font=("Arial", 9, "underline"),
+        window.config(menu=tk.Menu(window), bg=BG_APP)
+        main_container = tk.Frame(window, bg=BG_APP); main_container.pack(expand=True)
+        card = tk.Frame(main_container, bg="white", padx=60, pady=60); card.pack(padx=10, pady=10)
+        if Vista.logo_img: tk.Label(card, image=Vista.logo_img, bg="white").pack(pady=(0, 15))
+        tk.Label(card, text="Bonitas Fashions", font=("Gabriola", 32, "bold"), bg="white", fg=COLOR_PRIMARY).pack()
+        tk.Label(card, text="Bienvenido de nuevo", font=FONT_BODY, bg="white", fg="gray").pack(pady=(0, 30))
+        v_cor = tk.StringVar(); v_pas = tk.StringVar()
+        tk.Label(card, text="Correo Electrónico", bg="white", font=FONT_BOLD, fg=COLOR_TEXT_MAIN).pack(anchor="w")
+        Vista.entry_visible(card, v_cor); tk.Label(card, text="", bg="white").pack()
+        tk.Label(card, text="Contraseña", bg="white", font=FONT_BOLD, fg=COLOR_TEXT_MAIN).pack(anchor="w")
+        Vista.entry_visible(card, v_pas, "*"); tk.Label(card, text="", bg="white").pack()
+        Vista.btn_moderno(card, "INICIAR SESIÓN", lambda: funciones.Funciones.ingresar(window, v_cor.get(), v_pas.get()), width=25).pack(fill="x", pady=10)
+        tk.Button(card, text="Crear una cuenta", fg=COLOR_SECONDARY, bg="white", bd=0, cursor="hand2", font=("Segoe UI", 10, "underline"),
             command=lambda: Vista.registro(window)).pack()
 
     # ==========================================
-    # PANTALLA 2: REGISTRO
+    # 2. REGISTRO
     # ==========================================
     @staticmethod
     def registro(window):
         Vista.borrarPantalla(window)
-        frame = tk.Frame(window, bg=COLOR_BLANCO, padx=40, pady=40, bd=1, relief="solid"); frame.pack(expand=True)
-        tk.Label(frame, text="Registro de Usuario", font=("Arial", 18, "bold"), bg=COLOR_BLANCO, fg=COLOR_BOTON).pack(pady=20)
-
+        container = tk.Frame(window, bg=BG_APP); container.pack(expand=True, fill="both", padx=20, pady=20)
+        card = tk.Frame(container, bg="white", padx=80, pady=60); card.pack()
+        tk.Label(card, text="Crear Cuenta", font=("Segoe UI", 26, "bold"), bg="white", fg=COLOR_PRIMARY).pack(pady=(0, 10))
+        form_frame = tk.Frame(card, bg="white", width=400); form_frame.pack(fill="x")
         nom = tk.StringVar(); ape = tk.StringVar(); cor = tk.StringVar(); pas = tk.StringVar()
-
-        def crear_input(lbl, var, show=None):
-            tk.Label(frame, text=lbl, bg=COLOR_BLANCO, fg=COLOR_TEXTO).pack(anchor="w")
-            tk.Entry(frame, textvariable=var, show=show, bg="#F4F6F6", width=30).pack(pady=5)
-
-        crear_input("Nombre:", nom); crear_input("Apellidos:", ape); crear_input("Correo:", cor); crear_input("Contraseña:", pas, "*")
-
-        tk.Button(frame, text="GUARDAR", bg=COLOR_BOTON, fg="white", width=20, cursor="hand2",
-            command=lambda: funciones.Funciones.guardar_usuario(window, nom.get(), ape.get(), cor.get(), pas.get())).pack(pady=20)
-        tk.Button(frame, text="Volver", bg=COLOR_BLANCO, fg="gray", bd=0, cursor="hand2", command=lambda: Vista.login(window)).pack()
+        def row(lbl, var, show=None): tk.Label(form_frame, text=lbl, bg="white", fg=COLOR_TEXT_MAIN, font=FONT_BOLD).pack(anchor="w", pady=(15, 5)); Vista.entry_visible(form_frame, var, show)
+        row("Nombre(s)", nom); row("Apellidos", ape); row("Correo Electrónico", cor); row("Contraseña", pas, "*")
+        tk.Frame(card, bg="white", height=30).pack() 
+        Vista.btn_moderno(card, "GUARDAR REGISTRO", lambda: funciones.Funciones.guardar_usuario(window, nom.get(), ape.get(), cor.get(), pas.get()), width=30).pack(fill="x")
+        tk.Button(card, text="Cancelar y Volver", bg="white", fg="gray", bd=0, cursor="hand2", font=("Segoe UI", 10), command=lambda: Vista.login(window)).pack(pady=15)
 
     # ==========================================
-    # PANTALLA 3: MENU PRINCIPAL
+    # 3. MENU PRINCIPAL
     # ==========================================
     @staticmethod
     def menu_principal(window, usuario=None):
-        Vista.borrarPantalla(window)
-        window.config(bg=COLOR_FONDO)
-        
-        nombre = usuario[1] if usuario else "Usuario"
-        rol = usuario[5] if usuario and len(usuario)>5 else "user"
-        
-        menubar = tk.Menu(window); window.config(menu=menubar)
-        menu_acc = tk.Menu(menubar, tearoff=0)
-        menubar.add_cascade(label="Mi Cuenta", menu=menu_acc)
-        menu_acc.add_command(label="Cerrar Sesión", command=lambda: Vista.login(window))
-        menu_acc.add_command(label="Salir", command=window.quit)
-
-        frame_centro = tk.Frame(window, bg=COLOR_FONDO); frame_centro.pack(expand=True)
-
-        if Vista.logo_img:
-            tk.Label(frame_centro, image=Vista.logo_img, bg=COLOR_FONDO).pack(pady=10)
-
-        tk.Label(frame_centro, text=f"Hola, {nombre}", font=("Gabriola", 36, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO).pack()
-        tk.Label(frame_centro, text=f"Rol: {rol.upper()}", font=("Arial", 12), bg=COLOR_FONDO, fg="gray").pack(pady=(0, 30))
-        
-        frame_botones = tk.Frame(frame_centro, bg=COLOR_FONDO); frame_botones.pack()
-        btn_style = {'width': 20, 'height': 2, 'font': ("Arial", 11, "bold"), 'cursor': "hand2", 'bd': 0, 'fg': "white"}
-
-        tk.Button(frame_botones, text="👥 CLIENTES", bg="#9B59B6", command=lambda: Vista.interfaz_clientes(window, usuario), **btn_style).grid(row=0, column=0, padx=15)
-        tk.Button(frame_botones, text="🛒 VENTAS", bg="#8E44AD", command=lambda: Vista.interfaz_ventas(window, usuario), **btn_style).grid(row=0, column=1, padx=15)
-        tk.Button(frame_botones, text="📊 REPORTES", bg="#6C3483", command=lambda: Vista.interfaz_reportes(window, usuario), **btn_style).grid(row=0, column=2, padx=15)
+        Vista.borrarPantalla(window); window.config(bg=BG_APP)
+        nombre = usuario[1] if usuario else "Usuario"; rol = usuario[5] if usuario and len(usuario)>5 else "user"
+        nav = tk.Frame(window, bg="white", height=60, padx=30); nav.pack(fill="x")
+        if Vista.logo_img: tk.Label(nav, text=" Bonitas Fashions", font=("Gabriola", 22, "bold"), bg="white", fg=COLOR_PRIMARY).pack(side="left")
+        tk.Button(nav, text="Cerrar Sesión", bg="white", fg=COLOR_TEXT_MAIN, bd=0, font=FONT_BOLD, cursor="hand2", command=lambda: Vista.login(window)).pack(side="right")
+        content = tk.Frame(window, bg=BG_APP); content.pack(expand=True)
+        if Vista.logo_img: tk.Label(content, image=Vista.logo_img, bg=BG_APP).pack(pady=10)
+        tk.Label(content, text=f"Hola, {nombre}", font=("Gabriola", 48), bg=BG_APP, fg=COLOR_TEXT_MAIN).pack()
+        tk.Label(content, text=f"Panel de Control ({rol.upper()})", font=("Segoe UI", 14), bg=BG_APP, fg="gray").pack(pady=(0, 40))
+        grid = tk.Frame(content, bg=BG_APP); grid.pack()
+        def tile(col, txt, icon_char, cmd):
+            f = tk.Frame(grid, bg="white", width=220, height=180, cursor="hand2"); f.grid(row=0, column=col, padx=20); f.pack_propagate(False)
+            lbl_icon = tk.Label(f, text=icon_char, font=("Segoe UI", 40), bg="white", fg=COLOR_PRIMARY, cursor="hand2"); lbl_icon.pack(expand=True)
+            lbl_txt = tk.Label(f, text=txt, font=("Segoe UI", 14, "bold"), bg="white", fg=COLOR_TEXT_MAIN, cursor="hand2"); lbl_txt.pack(pady=(0, 20))
+            for w in [f, lbl_icon, lbl_txt]: w.bind("<Button-1>", lambda e: cmd())
+        tile(0, "CLIENTES", "👥", lambda: Vista.interfaz_clientes(window, usuario))
+        tile(1, "VENTAS", "🛍️", lambda: Vista.interfaz_ventas(window, usuario))
+        tile(2, "REPORTES", "📊", lambda: Vista.interfaz_reportes(window, usuario))
 
     # ==========================================
-    # PANTALLA 4: CLIENTES
+    # 4. CLIENTES
     # ==========================================
     @staticmethod
     def interfaz_clientes(window, usuario):
         Vista.borrarPantalla(window)
-        top = tk.Frame(window, pady=15, bg=COLOR_PANEL); top.pack(fill="x")
-        tk.Label(top, text="GESTIÓN DE CLIENTES", font=("Arial", 16, "bold"), bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(side="left", padx=20)
-
-        search_frame = tk.Frame(top, bg=COLOR_PANEL); search_frame.pack(side="left", padx=40)
-        tk.Label(search_frame, text="Buscar:", bg=COLOR_PANEL).pack(side="left")
-        v_busqueda = tk.StringVar()
-        tk.Entry(search_frame, textvariable=v_busqueda, width=25).pack(side="left", padx=5)
-        tk.Button(search_frame, text="🔍", bg="white", bd=0, command=lambda: funciones.Funciones.llenar_tabla_clientes(tree, usuario, v_busqueda.get())).pack(side="left")
-
-        tk.Button(top, text="+ NUEVO CLIENTE", bg=COLOR_BOTON, fg="white", font=("Arial", 9, "bold"),
-            command=lambda: Vista.modal_cliente(window, usuario, None, tree)).pack(side="right", padx=20)
-
-        center = tk.Frame(window, bg=COLOR_FONDO); center.pack(fill="both", expand=True, padx=20, pady=20)
-        actions = tk.Frame(center, bg=COLOR_BLANCO, bd=1, relief="solid", padx=10, width=140)
-        actions.pack(side="right", fill="y"); actions.pack_propagate(False)
-        
-        tk.Label(actions, text="Opciones", bg=COLOR_BLANCO, fg=COLOR_BOTON, font=("Arial", 11, "bold")).pack(pady=15)
-        btn_edit = tk.Button(actions, text="Editar", bg="#F39C12", fg="white", width=12, cursor="hand2"); btn_edit.pack(pady=5)
-        btn_del = tk.Button(actions, text="Eliminar", bg="#C0392B", fg="white", width=12, cursor="hand2"); btn_del.pack(pady=5)
-
-        frame_t = tk.Frame(center); frame_t.pack(side="left", fill="both", expand=True)
+        header = tk.Frame(window, bg="white", pady=15, padx=30); header.pack(fill="x")
+        tk.Button(header, text="⬅ INICIO", bg="white", fg="gray", bd=0, font=FONT_BOLD, command=lambda: Vista.menu_principal(window, usuario)).pack(side="left")
+        tk.Label(header, text=" |   CLIENTES", bg="white", fg=COLOR_TEXT_MAIN, font=("Segoe UI", 18, "bold")).pack(side="left")
+        Vista.btn_moderno(header, "+ NUEVO CLIENTE", lambda: Vista.modal_cliente(window, usuario, None, tree)).pack(side="right")
+        body = tk.Frame(window, bg=BG_APP, padx=30, pady=30); body.pack(fill="both", expand=True)
+        toolbar = tk.Frame(body, bg=BG_APP); toolbar.pack(fill="x", pady=(0, 10))
+        f_search = tk.Frame(toolbar, bg=COLOR_LILA_INPUT, padx=5, pady=5); f_search.pack(side="left")
+        v_bus = tk.StringVar(); e_bus = tk.Entry(f_search, textvariable=v_bus, bg=COLOR_LILA_INPUT, bd=0, font=("Segoe UI", 11), width=30); e_bus.pack(side="left", padx=10)
+        tk.Button(f_search, text="✖", bg=BTN_X_COLOR, fg="white", bd=0, font=("Arial", 8, "bold"), width=3, cursor="hand2", command=lambda: [v_bus.set(""), funciones.Funciones.llenar_tabla_clientes(tree, usuario, None)]).pack(side="right")
+        tk.Button(f_search, text="🔍", bg=COLOR_LILA_INPUT, bd=0, cursor="hand2", command=lambda: funciones.Funciones.llenar_tabla_clientes(tree, usuario, v_bus.get())).pack(side="right", padx=5)
+        border_frame = tk.Frame(body, bg=COLOR_TEXT_MAIN, padx=2, pady=2); border_frame.pack(side="left", fill="both", expand=True)
         cols = ("id", "idu", "nom", "tel", "dir", "cor", "edad")
-        tree = ttk.Treeview(frame_t, columns=cols, show="headings")
+        tree = ttk.Treeview(border_frame, columns=cols, show="headings")
         headers = ["ID", "Reg.Por", "Nombre", "Teléfono", "Dirección", "Correo", "Edad"]
-        for col, name in zip(cols, headers): tree.heading(col, text=name, command=lambda c=col: funciones.Funciones.ordenar_columna(tree, c, False))
-        tree.column("id", width=30, anchor="center"); tree.column("idu", width=50, anchor="center"); tree.column("edad", width=40, anchor="center"); tree.column("nom", width=150)
-        
-        scrol = ttk.Scrollbar(frame_t, orient="vertical", command=tree.yview)
-        tree.configure(yscroll=scrol.set); tree.pack(side="left", fill="both", expand=True); scrol.pack(side="right", fill="y")
-        
+        for c, h in zip(cols, headers): tree.heading(c, text=h, command=lambda _c=c: funciones.Funciones.ordenar_columna(tree, _c, False))
+        tree.column("id", width=40, anchor="center"); tree.column("idu", width=0, stretch=False); tree.column("edad", width=50, anchor="center")
+        scrol = ttk.Scrollbar(border_frame, orient="vertical", command=tree.yview); tree.configure(yscroll=scrol.set); tree.pack(side="left", fill="both", expand=True); scrol.pack(side="right", fill="y")
+        actions = tk.Frame(body, bg=BG_APP, width=150); actions.pack(side="right", fill="y", padx=(15, 0)); actions.pack_propagate(False)
+        tk.Label(actions, text="Opciones", bg=BG_APP, fg=COLOR_TEXT_MAIN, font=FONT_BOLD).pack(pady=(0, 10))
+        def get_sel(): sel = tree.selection(); return tree.item(sel) if sel else None
+        Vista.btn_moderno(actions, "Editar", lambda: Vista.modal_cliente(window, usuario, get_sel(), tree) if get_sel() else messagebox.showinfo("!", "Selecciona"), BTN_EDIT_COLOR).pack(fill="x", pady=5)
+        Vista.btn_moderno(actions, "Eliminar", lambda: funciones.Funciones.borrar_cliente_tabla(window, usuario, get_sel()['text'], tree) if get_sel() else messagebox.showinfo("!", "Selecciona"), BTN_DELETE_COLOR).pack(fill="x", pady=5)
+        e_bus.bind("<Return>", lambda e: funciones.Funciones.llenar_tabla_clientes(tree, usuario, v_bus.get()))
         funciones.Funciones.llenar_tabla_clientes(tree, usuario)
 
-        def get_sel(): sel = tree.selection(); return tree.item(sel) if sel else None
-        btn_edit.config(command=lambda: Vista.modal_cliente(window, usuario, get_sel(), tree) if get_sel() else messagebox.showinfo("Ojo", "Selecciona"))
-        btn_del.config(command=lambda: funciones.Funciones.borrar_cliente_tabla(window, usuario, get_sel()['text'], tree) if get_sel() else messagebox.showinfo("Ojo", "Selecciona"))
-        
-        tk.Button(window, text="⬅ Volver al Menú", bg="#5D6D7E", fg="white", command=lambda: Vista.menu_principal(window, usuario)).pack(pady=10)
-
     # ==========================================
-    # PANTALLA 5: VENTAS
+    # 5. VENTAS
     # ==========================================
     @staticmethod
     def interfaz_ventas(window, usuario):
         Vista.borrarPantalla(window)
-        top = tk.Frame(window, pady=15, bg=COLOR_PANEL); top.pack(fill="x")
-        tk.Label(top, text="HISTORIAL DE VENTAS", font=("Arial", 16, "bold"), bg=COLOR_PANEL, fg=COLOR_TEXTO).pack(side="left", padx=20)
-
-        filter_frame = tk.Frame(top, bg=COLOR_PANEL); filter_frame.pack(side="left", padx=40)
-        tk.Label(filter_frame, text="Fecha (YYYY-MM):", bg=COLOR_PANEL).pack(side="left")
-        v_fecha = tk.StringVar()
-        tk.Entry(filter_frame, textvariable=v_fecha, width=12).pack(side="left", padx=5)
-        tk.Button(filter_frame, text="Filtrar", bg="white", bd=0, command=lambda: funciones.Funciones.llenar_tabla_ventas(tree, usuario, v_fecha.get())).pack(side="left")
-        tk.Button(filter_frame, text="X", bg="#E74C3C", fg="white", bd=0, command=lambda: [v_fecha.set(""), funciones.Funciones.llenar_tabla_ventas(tree, usuario, None)]).pack(side="left", padx=2)
-
-        tk.Button(top, text="+ NUEVA VENTA", bg=COLOR_BOTON, fg="white", font=("Arial", 9, "bold"),
-            command=lambda: Vista.modal_venta(window, usuario, None, tree)).pack(side="right", padx=20)
-
-        center = tk.Frame(window, bg=COLOR_FONDO); center.pack(fill="both", expand=True, padx=20, pady=20)
-        actions = tk.Frame(center, bg=COLOR_BLANCO, bd=1, relief="solid", padx=10, width=140)
-        actions.pack(side="right", fill="y"); actions.pack_propagate(False)
-        tk.Label(actions, text="Opciones", bg=COLOR_BLANCO, fg=COLOR_BOTON, font=("Arial", 11, "bold")).pack(pady=15)
-        btn_edit = tk.Button(actions, text="Editar", bg="#F39C12", fg="white", width=12, cursor="hand2"); btn_edit.pack(pady=5)
-        btn_del = tk.Button(actions, text="Anular", bg="#C0392B", fg="white", width=12, cursor="hand2"); btn_del.pack(pady=5)
-
-        frame_t = tk.Frame(center); frame_t.pack(side="left", fill="both", expand=True)
+        header = tk.Frame(window, bg="white", pady=15, padx=30); header.pack(fill="x")
+        tk.Button(header, text="⬅ INICIO", bg="white", fg="gray", bd=0, font=FONT_BOLD, command=lambda: Vista.menu_principal(window, usuario)).pack(side="left")
+        tk.Label(header, text=" |   HISTORIAL VENTAS", bg="white", fg=COLOR_TEXT_MAIN, font=("Segoe UI", 18, "bold")).pack(side="left")
+        Vista.btn_moderno(header, "+ NUEVA VENTA", lambda: Vista.modal_venta(window, usuario, None, tree)).pack(side="right")
+        body = tk.Frame(window, bg=BG_APP, padx=30, pady=30); body.pack(fill="both", expand=True)
+        toolbar = tk.Frame(body, bg=BG_APP); toolbar.pack(fill="x", pady=(0, 10))
+        f_search = tk.Frame(toolbar, bg=COLOR_LILA_INPUT, padx=5, pady=5); f_search.pack(side="left")
+        tk.Label(f_search, text="Fecha (YYYY-MM):", bg=COLOR_LILA_INPUT, fg="gray", font=("Arial", 9)).pack(side="left", padx=5)
+        v_fec = tk.StringVar(); e_fec = tk.Entry(f_search, textvariable=v_fec, bg=COLOR_LILA_INPUT, bd=0, font=("Segoe UI", 11), width=15); e_fec.pack(side="left", padx=5)
+        tk.Button(f_search, text="✖", bg=BTN_X_COLOR, fg="white", bd=0, font=("Arial", 8, "bold"), width=3, cursor="hand2", command=lambda: [v_fec.set(""), funciones.Funciones.llenar_tabla_ventas(tree, usuario, None)]).pack(side="right")
+        tk.Button(f_search, text="🔍", bg=COLOR_LILA_INPUT, bd=0, cursor="hand2", command=lambda: funciones.Funciones.llenar_tabla_ventas(tree, usuario, v_fec.get())).pack(side="right", padx=5)
+        border_frame = tk.Frame(body, bg=COLOR_TEXT_MAIN, padx=2, pady=2); border_frame.pack(side="left", fill="both", expand=True)
         cols = ("fol", "vend", "cli", "monto", "pren", "pago", "fecha", "idcli")
-        tree = ttk.Treeview(frame_t, columns=cols, show="headings")
+        tree = ttk.Treeview(border_frame, columns=cols, show="headings")
         headers = ["Folio", "Vendedor", "Cliente", "Total", "Prendas", "Pago", "Fecha"]
-        for col, name in zip(cols[:-1], headers): tree.heading(col, text=name, command=lambda c=col: funciones.Funciones.ordenar_columna(tree, c, False))
+        for c, h in zip(cols[:-1], headers): tree.heading(c, text=h, command=lambda _c=c: funciones.Funciones.ordenar_columna(tree, _c, False))
         tree.column("fol", width=50, anchor="center"); tree.column("monto", width=80, anchor="e"); tree.column("pren", width=60, anchor="center"); tree.column("idcli", width=0, stretch=False)
-        
-        scrol = ttk.Scrollbar(frame_t, orient="vertical", command=tree.yview)
-        tree.configure(yscroll=scrol.set); tree.pack(side="left", fill="both", expand=True); scrol.pack(side="right", fill="y")
-        
+        scrol = ttk.Scrollbar(border_frame, orient="vertical", command=tree.yview); tree.configure(yscroll=scrol.set); tree.pack(side="left", fill="both", expand=True); scrol.pack(side="right", fill="y")
+        actions = tk.Frame(body, bg=BG_APP, width=150); actions.pack(side="right", fill="y", padx=(15, 0)); actions.pack_propagate(False)
+        tk.Label(actions, text="Opciones", bg=BG_APP, fg=COLOR_TEXT_MAIN, font=FONT_BOLD).pack(pady=(0, 10))
+        def get_sel(): sel = tree.selection(); return tree.item(sel) if sel else None
+        Vista.btn_moderno(actions, "Editar", lambda: Vista.modal_venta(window, usuario, get_sel(), tree) if get_sel() else messagebox.showinfo("!", "Selecciona"), BTN_EDIT_COLOR).pack(fill="x", pady=5)
+        Vista.btn_moderno(actions, "Anular", lambda: funciones.Funciones.borrar_venta_tabla(window, usuario, get_sel()['text'], tree) if get_sel() else messagebox.showinfo("!", "Selecciona"), BTN_DELETE_COLOR).pack(fill="x", pady=5)
         funciones.Funciones.llenar_tabla_ventas(tree, usuario)
 
-        def get_sel(): sel = tree.selection(); return tree.item(sel) if sel else None
-        btn_edit.config(command=lambda: Vista.modal_venta(window, usuario, get_sel(), tree) if get_sel() else messagebox.showinfo("Ojo", "Selecciona"))
-        btn_del.config(command=lambda: funciones.Funciones.borrar_venta_tabla(window, usuario, get_sel()['text'], tree) if get_sel() else messagebox.showinfo("Ojo", "Selecciona"))
-        tk.Button(window, text="⬅ Volver al Menú", bg="#5D6D7E", fg="white", command=lambda: Vista.menu_principal(window, usuario)).pack(pady=10)
-
     # ==========================================
-    # PANTALLA 6: REPORTES
+    # 6. REPORTES
     # ==========================================
     @staticmethod
     def interfaz_reportes(window, usuario):
-        Vista.borrarPantalla(window)
-        rol = usuario[5] if usuario and len(usuario)>5 else "user"
-        tk.Label(window, text="CENTRO DE REPORTES", font=("Gabriola", 30, "bold"), bg=COLOR_FONDO, fg=COLOR_TEXTO).pack(pady=20)
-        main_frame = tk.Frame(window, bg=COLOR_FONDO); main_frame.pack(pady=10)
-
-        def crear_bloque(titulo, col):
-            f = tk.LabelFrame(main_frame, text=titulo, font=("Arial", 12, "bold"), padx=20, pady=20, bg="white", fg=COLOR_BOTON)
-            f.grid(row=0, column=col, padx=20, sticky="n"); return f
-
-        f_c = crear_bloque("📂 Clientes", 0); tk.Label(f_c, text="Exportar clientes", bg="white").pack(pady=5)
-        bf_c = tk.Frame(f_c, bg="white"); bf_c.pack(pady=10)
-        tk.Button(bf_c, text="Excel", bg="#27AE60", fg="white", width=8, command=lambda: Vista.generar_exportacion("clientes", "excel", usuario)).pack(side="left", padx=2)
-        tk.Button(bf_c, text="PDF", bg="#C0392B", fg="white", width=8, command=lambda: Vista.generar_exportacion("clientes", "pdf", usuario)).pack(side="left", padx=2)
-
-        f_v = crear_bloque("💰 Ventas", 1); tk.Label(f_v, text="Exportar historial", bg="white").pack(pady=5)
-        bf_v = tk.Frame(f_v, bg="white"); bf_v.pack(pady=10)
-        tk.Button(bf_v, text="Excel", bg="#27AE60", fg="white", width=8, command=lambda: Vista.generar_exportacion("ventas", "excel", usuario)).pack(side="left", padx=2)
-        tk.Button(bf_v, text="PDF", bg="#C0392B", fg="white", width=8, command=lambda: Vista.generar_exportacion("ventas", "pdf", usuario)).pack(side="left", padx=2)
-
+        Vista.borrarPantalla(window); rol = usuario[5] if usuario and len(usuario)>5 else "user"
+        header = tk.Frame(window, bg="white", pady=15, padx=30); header.pack(fill="x")
+        tk.Button(header, text="⬅ INICIO", bg="white", fg="gray", bd=0, font=FONT_BOLD, command=lambda: Vista.menu_principal(window, usuario)).pack(side="left")
+        tk.Label(header, text=" |   REPORTES", bg="white", fg=COLOR_TEXT_MAIN, font=("Segoe UI", 18, "bold")).pack(side="left")
+        main = tk.Frame(window, bg=BG_APP); main.pack(fill="both", expand=True, padx=40, pady=40); grid = tk.Frame(main, bg=BG_APP); grid.pack()
+        def card_rep(col, title, tipo, color):
+            f = tk.Frame(grid, bg="white", width=250, height=180, padx=20, pady=20); f.grid(row=0, column=col, padx=20); f.pack_propagate(False)
+            tk.Label(f, text=title, font=("Segoe UI", 16, "bold"), bg="white", fg=color).pack(pady=(0, 20))
+            Vista.btn_moderno(f, "Exportar Excel", lambda: Vista.generar_exportacion(tipo, "excel", usuario), "#27AE60").pack(fill="x", pady=2)
+            Vista.btn_moderno(f, "Exportar PDF", lambda: Vista.generar_exportacion(tipo, "pdf", usuario), "#C0392B").pack(fill="x", pady=2)
+        card_rep(0, "Clientes", "clientes", COLOR_PRIMARY); card_rep(1, "Ventas", "ventas", COLOR_PRIMARY)
         if rol == 'admin':
-            f_u = tk.LabelFrame(main_frame, text="🛡️ Admin", font=("Arial", 12, "bold"), padx=20, pady=20, bg="white", fg="red")
-            f_u.grid(row=1, column=0, columnspan=2, pady=20, sticky="ew")
-            tk.Button(f_u, text="Reporte Usuarios (Excel)", bg="#333", fg="white", command=lambda: Vista.generar_exportacion("usuarios", "excel", usuario)).pack()
-
+            f = tk.Frame(grid, bg="white", width=250, height=180, padx=20, pady=20); f.grid(row=0, column=2, padx=20); f.pack_propagate(False)
+            tk.Label(f, text="Admin", font=("Segoe UI", 16, "bold"), bg="white", fg="red").pack(pady=(0, 20))
+            Vista.btn_moderno(f, "Usuarios (Excel)", lambda: Vista.generar_exportacion("usuarios", "excel", usuario), "#333").pack(fill="x", pady=2)
         tk.Button(window, text="⬅ Volver al Menú", bg="#5D6D7E", fg="white", command=lambda: Vista.menu_principal(window, usuario)).pack(pady=30)
 
     @staticmethod
     def generar_exportacion(tipo, formato, usuario):
         rol = usuario[5]; id_usu = usuario[0]; datos = []; columnas = []; titulo = ""
         if tipo == "clientes":
-            raw = clienteBD.ClienteBD.consultar(id_usu, rol)
-            columnas = ["ID", "ID_Usu", "Nombre", "Teléfono", "Dirección", "Correo", "Edad"]
+            raw = clienteBD.ClienteBD.consultar(id_usu, rol); columnas = ["ID", "ID_Usu", "Nombre", "Teléfono", "Dirección", "Correo", "Edad"]
             if rol == 'admin': columnas.append("Vendedor")
             datos = raw; titulo = "Reporte Clientes"
         elif tipo == "ventas":
             raw = ventaBD.VentaBD.consultar_ventas(id_usu, rol)
             datos = [(r[0], r[1], r[2], r[3], r[4], r[5], r[7]) for r in raw]
-            columnas = ["Folio", "Cliente", "Monto", "Prendas", "Pago", "Fecha", "Vendedor"]
-            titulo = "Reporte Ventas"
+            columnas = ["Folio", "Cliente", "Monto", "Prendas", "Pago", "Fecha", "Vendedor"]; titulo = "Reporte Ventas"
         elif tipo == "usuarios":
             from model.conexionBD import cursor
             cursor.execute("SELECT id, nombre, apellidos, correo, rol FROM usuarios")
             datos = cursor.fetchall(); columnas = ["ID", "Nombre", "Apellidos", "Correo", "Rol"]; titulo = "Usuarios"
-        
         if formato == "excel": GeneradorReportes.exportar_excel(datos, columnas, tipo)
         elif formato == "pdf": GeneradorReportes.exportar_pdf(datos, columnas, titulo, tipo)
 
-    # --- MODALES ---
+    # --- MODALES (CORREGIDOS CON ESTILO BLANCO) ---
     @staticmethod
     def modal_cliente(parent, usuario, item_editar, tree):
-        modal = tk.Toplevel(parent); modal.geometry("350x420"); modal.config(bg=COLOR_FONDO)
+        modal = tk.Toplevel(parent); modal.geometry("400x550"); modal.config(bg="white")
         v_nom = tk.StringVar(); v_tel = tk.StringVar(); v_dir = tk.StringVar(); v_cor = tk.StringVar(); v_edad = tk.IntVar()
         id_cli = None
         tit = "Editar Cliente" if item_editar else "Nuevo Cliente"
-        modal.title(tit); tk.Label(modal, text=tit, font=("Arial", 14, "bold"), bg=COLOR_FONDO, fg=COLOR_BOTON).pack(pady=10)
+        modal.title(tit); tk.Label(modal, text=tit, font=("Segoe UI", 16, "bold"), bg="white", fg=COLOR_PRIMARY).pack(pady=20)
         if item_editar:
             id_cli = item_editar['text']; vals = item_editar['values']
             v_nom.set(vals[2]); v_tel.set(vals[3]); v_dir.set(vals[4]); v_cor.set(vals[5]); v_edad.set(vals[6])
-
-        def inp(l, v): tk.Label(modal, text=l, bg=COLOR_FONDO).pack(); tk.Entry(modal, textvariable=v).pack()
-        inp("Nombre:", v_nom); inp("Teléfono:", v_tel); inp("Dirección:", v_dir); inp("Correo:", v_cor); inp("Edad:", v_edad)
-        tk.Button(modal, text="GUARDAR", bg=COLOR_BOTON, fg="white", width=20,
-            command=lambda: funciones.Funciones.guardar_o_editar_cliente(parent, tree, id_cli, usuario, v_nom.get(), v_tel.get(), v_dir.get(), v_cor.get(), v_edad.get(), modal)).pack(pady=20)
+        f = tk.Frame(modal, bg="white", padx=40); f.pack(fill="both")
+        def row(t, v): tk.Label(f, text=t, bg="white", fg="gray", anchor="w").pack(fill="x", pady=(10,0)); Vista.entry_visible(f, v)
+        row("Nombre", v_nom); row("Teléfono", v_tel); row("Dirección", v_dir); row("Correo", v_cor); row("Edad", v_edad)
+        tk.Frame(modal, bg="white", height=20).pack()
+        Vista.btn_moderno(modal, "GUARDAR", lambda: funciones.Funciones.guardar_o_editar_cliente(parent, tree, id_cli, usuario, v_nom.get(), v_tel.get(), v_dir.get(), v_cor.get(), v_edad.get(), modal)).pack(fill="x", padx=40, pady=20)
 
     @staticmethod
     def modal_venta(parent, usuario, item_editar, tree):
-        modal = tk.Toplevel(parent); modal.geometry("350x450"); modal.config(bg=COLOR_FONDO)
+        modal = tk.Toplevel(parent); modal.geometry("400x550"); modal.config(bg="white")
         v_cli = tk.StringVar(); v_monto = tk.DoubleVar(); v_pren = tk.IntVar(value=1); v_met = tk.StringVar(); id_venta = None
         tit = "Editar Venta" if item_editar else "Nueva Venta"
-        modal.title(tit); tk.Label(modal, text=tit, font=("Arial", 14, "bold"), bg=COLOR_FONDO, fg=COLOR_BOTON).pack(pady=10)
+        modal.title(tit); tk.Label(modal, text=tit, font=("Segoe UI", 16, "bold"), bg="white", fg=COLOR_PRIMARY).pack(pady=20)
         rol = usuario[5] if len(usuario)>5 else "user"
         raw = clienteBD.ClienteBD.consultar(usuario[0], rol)
         lista_combo = [f"{c[0]} - {c[2]}" for c in raw]
-
         if item_editar:
             id_venta = item_editar['text']; vals = item_editar['values']
             v_cli.set(f"{vals[7]} - {vals[2]}"); v_monto.set(str(vals[3]).replace("$","")); v_pren.set(vals[4]); v_met.set(vals[5])
-
-        tk.Label(modal, text="Cliente:", bg=COLOR_FONDO).pack()
-        ttk.Combobox(modal, textvariable=v_cli, values=lista_combo, state="readonly", width=30).pack()
-        tk.Label(modal, text="Total ($):", bg=COLOR_FONDO).pack(); tk.Entry(modal, textvariable=v_monto).pack()
-        tk.Label(modal, text="Prendas:", bg=COLOR_FONDO).pack(); tk.Entry(modal, textvariable=v_pren).pack()
-        tk.Label(modal, text="Pago:", bg=COLOR_FONDO).pack()
-        cmb = ttk.Combobox(modal, textvariable=v_met, values=["Efectivo", "Tarjeta", "Transferencia"], state="readonly"); cmb.pack()
-        if not item_editar: cmb.current(0)
+        f = tk.Frame(modal, bg="white", padx=40); f.pack(fill="both")
         
-        btn_txt = "ACTUALIZAR" if item_editar else "COBRAR"
-        tk.Button(modal, text=btn_txt, bg=COLOR_BOTON, fg="white", width=20,
-            command=lambda: funciones.Funciones.guardar_o_editar_venta(parent, tree, usuario, id_venta, v_cli.get(), v_monto.get(), v_pren.get(), v_met.get(), modal)).pack(pady=20)
+        tk.Label(f, text="Cliente", bg="white", fg="gray", anchor="w").pack(fill="x", pady=(10,0))
+        # Combobox blanco y limpio
+        ttk.Combobox(f, textvariable=v_cli, values=lista_combo, state="readonly").pack(fill="x", ipady=5)
+        
+        def row(t, v): tk.Label(f, text=t, bg="white", fg="gray", anchor="w").pack(fill="x", pady=(10,0)); Vista.entry_visible(f, v)
+        row("Total $", v_monto); row("Prendas", v_pren)
+        
+        tk.Label(f, text="Pago", bg="white", fg="gray", anchor="w").pack(fill="x", pady=(10,0))
+        c = ttk.Combobox(f, textvariable=v_met, values=["Efectivo", "Tarjeta", "Transferencia"], state="readonly"); c.pack(fill="x", ipady=5)
+        if not item_editar: c.current(0)
+
+        btn = "ACTUALIZAR" if item_editar else "COBRAR"
+        Vista.btn_moderno(modal, btn, lambda: funciones.Funciones.guardar_o_editar_venta(parent, tree, usuario, id_venta, v_cli.get(), v_monto.get(), v_pren.get(), v_met.get(), modal)).pack(fill="x", padx=40, pady=20)
