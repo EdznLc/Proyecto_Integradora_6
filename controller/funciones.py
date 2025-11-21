@@ -2,7 +2,6 @@ from tkinter import messagebox
 from model import usuarioBD, clienteBD, ventaBD
 
 class Funciones:
-    
     # --- USUARIOS ---
     @staticmethod
     def ingresar(window, correo, password):
@@ -35,27 +34,20 @@ class Funciones:
     # --- HELPER: ORDENAR TABLA CON FLECHAS ---
     @staticmethod
     def ordenar_columna(tree, col, reverse):
-        # Obtener datos
         l = [(tree.set(k, col), k) for k in tree.get_children('')]
-        
         try:
-            # Intentar ordenar numéricamente (quitando $)
             l.sort(key=lambda t: float(t[0].replace("$", "")), reverse=reverse)
         except ValueError:
-            # Si falla, ordenar como texto
             l.sort(reverse=reverse)
 
-        # Mover items
         for index, (val, k) in enumerate(l):
             tree.move(k, '', index)
 
-        # Limpiar flechas viejas
         for column in tree["columns"]:
             titulo_actual = tree.heading(column)["text"]
             titulo_limpio = titulo_actual.replace(" ▲", "").replace(" ▼", "")
             tree.heading(column, text=titulo_limpio)
 
-        # Poner flecha nueva
         flecha = " ▼" if reverse else " ▲"
         titulo_nuevo = tree.heading(col)["text"] + flecha
         tree.heading(col, text=titulo_nuevo, command=lambda: Funciones.ordenar_columna(tree, col, not reverse))
@@ -69,6 +61,11 @@ class Funciones:
         rol = usuario[5] if len(usuario) > 5 else "user"
         
         datos = clienteBD.ClienteBD.consultar(id_usuario, rol)
+        
+        # --- Si llega None, lo convertimos a "" ---
+        if filtro_texto is None: 
+            filtro_texto = ""
+        
         filtro_texto = filtro_texto.lower()
         
         for row in datos:
@@ -117,7 +114,6 @@ class Funciones:
         datos = ventaBD.VentaBD.consultar_ventas(id_usuario, rol, fecha_filtro)
         
         for row in datos:
-            # row: 0:id, 1:cli, 2:monto, 3:pren, 4:pago, 5:fecha, 6:idcli, 7:VENDEDOR
             nombre_vendedor = row[7]
             tree.insert("", "end", text=row[0], values=(row[0], nombre_vendedor, row[1], f"${row[2]}", row[3], row[4], row[5], row[6]))
 
@@ -127,9 +123,7 @@ class Funciones:
             messagebox.showwarning("Alerta", "Faltan datos")
             return
         try:
-            # Extraer ID del string "1 - LUIS"
             id_cliente = seleccion_cliente_str.split(" - ")[0]
-            
             if id_venta is None:
                 exito = ventaBD.VentaBD.registrar_venta(usuario_actual[0], id_cliente, float(monto), int(num_prendas), metodo_pago)
                 msg = "Venta registrada"

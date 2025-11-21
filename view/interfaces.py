@@ -5,7 +5,7 @@ from controller.reportes import GeneradorReportes
 from model import clienteBD, ventaBD, usuarioBD
 import os
 
-# --- PALETA DE COLORES BOUTIQUE ---
+# --- PALETA DE COLORES ---
 BG_APP           = "#F3E5F5"
 BG_PANEL         = "#FFFFFF"
 COLOR_PRIMARY    = "#8E44AD"
@@ -39,7 +39,7 @@ class Vista:
         except Exception as e:
             print(f"Nota: No se encontró logo.png")
 
-        # --- ESTILOS MODERNOS (CORREGIDOS PARA COMBOBOX) ---
+        # --- ESTILOS  ---
         style = ttk.Style()
         style.theme_use("clam")
         
