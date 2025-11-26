@@ -10,3 +10,5 @@ try:
     cursor = conexion.cursor(buffered=True)
 except:
     print("Error al conectar a la base de datos")
+    conexion = None
+    cursor = None

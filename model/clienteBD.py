@@ -1,89 +1,86 @@
-# Importamos explícitamente lo que necesitamos, no todo (*)
-from model.conexionBD import conexion, cursor 
-import traceback # Útil para ver detalles profundos del error si es necesario
+from conexionBD import conexion, cursor 
 
 class ClienteBD:
     """
-    Clase encargada de todas las operaciones CRUD (Crear, Leer, Actualizar, Borrar)
-    para la tabla 'clientes'.
+    Clase para gestionar los Clientes (CRUD).
+    Maneja apellidos separados en BD pero unidos para la vista.
     """
 
     @staticmethod
-    def insertar(id_usuario, nombre, telefono, direccion, correo, edad):
+    def insertar(id_usuario, nombre, pat, mat, telefono, direccion, correo, edad):
         try:
             sql = """
-                INSERT INTO clientes (id_usuario, nombre, telefono, direccion, correo, edad) 
-                VALUES (%s, %s, %s, %s, %s, %s)
+                INSERT INTO clientes 
+                (id_usuario_registro, nombre, apellido_paterno, apellido_materno, telefono, direccion, correo, edad) 
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
             """
-            val = (id_usuario, nombre, telefono, direccion, correo, edad)
+            val = (id_usuario, nombre, pat, mat, telefono, direccion, correo, edad)
             
             cursor.execute(sql, val)
             conexion.commit()
             return True
-            
         except Exception as e:
-            #Imprimimos el error para saber qué pasó
-            print(f"Error al insertar cliente: {e}")
+            print(f"Error Insertar Cliente: {e}")
             return False
 
     @staticmethod
     def consultar(id_usuario, rol):
         try:
-            # Limpiamos resultados pendientes del cursor si los hubiera
-            try: cursor.fetchall() 
-            except: pass 
-
-            if rol == 'admin':
-                # Admin: Ve clientes + nombre del vendedor (JOIN)
-                sql = """
-                    SELECT c.id, c.id_usuario, c.nombre, c.telefono, c.direccion, c.correo, c.edad, u.nombre 
-                    FROM clientes c 
-                    INNER JOIN usuarios u ON c.id_usuario = u.id
-                """
-                cursor.execute(sql)
-            else:
-                # Usuario Normal: Solo ve sus propios registros
-                sql = "SELECT * FROM clientes WHERE id_usuario = %s"
+            # CONCAT_WS une el nombre y apellidos con espacios para mostrarlos juntos en la tabla
+            sql = """
+                SELECT 
+                    c.id_cliente, 
+                    c.id_usuario_registro, 
+                    CONCAT_WS(' ', c.nombre, c.apellido_paterno, c.apellido_materno), 
+                    c.telefono, 
+                    c.direccion, 
+                    c.correo, 
+                    c.edad, 
+                    c.nombre, 
+                    c.apellido_paterno, 
+                    c.apellido_materno, 
+                    u.username
+                FROM clientes c 
+                INNER JOIN usuarios u ON c.id_usuario_registro = u.id_usuario
+            """
+            
+            # Si no es admin, filtramos para ver solo sus propios clientes
+            if rol != 'admin' and rol != 1:
+                sql += " WHERE c.id_usuario_registro = %s"
                 cursor.execute(sql, (id_usuario,))
-            
+            else:
+                cursor.execute(sql)
+                
             return cursor.fetchall()
-            
         except Exception as e:
-            print(f"Error al consultar clientes: {e}")
+            print(f"Error Consultar Clientes: {e}")
             return []
 
     @staticmethod
-    def actualizar(id_cliente, nombre, telefono, direccion, correo, edad):
+    def actualizar(id_cliente, nombre, pat, mat, telefono, direccion, correo, edad):
         try:
             sql = """
                 UPDATE clientes 
-                SET nombre=%s, telefono=%s, direccion=%s, correo=%s, edad=%s 
-                WHERE id=%s
+                SET nombre=%s, apellido_paterno=%s, apellido_materno=%s, 
+                    telefono=%s, direccion=%s, correo=%s, edad=%s 
+                WHERE id_cliente=%s
             """
-            val = (nombre, telefono, direccion, correo, edad, id_cliente)
+            val = (nombre, pat, mat, telefono, direccion, correo, edad, id_cliente)
             
             cursor.execute(sql, val)
             conexion.commit()
-            
-            # Verificamos si realmente se actualizó alguna fila
-            if cursor.rowcount > 0:
-                return True
-            else:
-                print("No se encontró el cliente o los datos eran idénticos.")
-                return False
-                
+            return True
         except Exception as e:
-            print(f"Error al actualizar cliente: {e}")
+            print(f"Error Update Cliente: {e}")
             return False
 
     @staticmethod
     def eliminar(id_cliente):
         try:
-            sql = "DELETE FROM clientes WHERE id = %s"
+            sql = "DELETE FROM clientes WHERE id_cliente = %s"
             cursor.execute(sql, (id_cliente,))
             conexion.commit()
             return True
-            
         except Exception as e:
-            print(f"Error al eliminar cliente: {e}")
+            print(f"Error Eliminar Cliente: {e}")
             return False

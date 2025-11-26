@@ -3,144 +3,115 @@ from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from tkinter import filedialog, messagebox
 from datetime import datetime
-import os
+from model import clienteBD, ventaBD
+from conexionBD import cursor
 
 class GeneradorReportes:
     """
-    Módulo encargado de transformar los datos crudos (listas de tuplas)
-    en archivos físicos (.xlsx o .pdf) para el usuario.
+    Controlador para exportar datos a Excel y PDF.
     """
 
-    # ==========================================
-    # 1. EXPORTACIÓN A EXCEL
-    # ==========================================
+    MAPA_PAGO_TXT = {1: "Efectivo", 2: "Tarjeta", 3: "Transferencia"}
+
     @staticmethod
-    def exportar_excel(datos, columnas, nombre_base_archivo):
-        """
-        Usa la librería 'pandas' porque es la forma más rápida y limpia
-        de pasar datos a Excel sin complicarse con celdas individuales.
-        """
-        if not datos:
-            messagebox.showwarning("Atención", "No hay datos para exportar.")
-            return
+    def generar(tipo, formato, usuario):
+        rol = usuario[5]
+        id_usu = usuario[0]
+        datos = []
+        columnas = []
+        titulo = ""
 
         try:
-            # 1. Convertir lista de datos a un DataFrame (Tabla virtual)
-            df = pd.DataFrame(datos, columns=columnas)
-            
-            # 2. Generar nombre sugerido con fecha (ej: Clientes_20231122)
-            fecha_hoy = datetime.now().strftime('%Y%m%d')
-            nombre_sugerido = f"{nombre_base_archivo}_{fecha_hoy}"
-
-            # 3. Abrir ventana para elegir dónde guardar
-            ruta_archivo = filedialog.asksaveasfilename(
-                defaultextension=".xlsx", 
-                filetypes=[("Archivos de Excel", "*.xlsx")],
-                initialfile=nombre_sugerido
-            )
-
-            # Si el usuario cancela, ruta_archivo será vacío
-            if not ruta_archivo: 
-                return
-
-            # 4. Guardar
-            df.to_excel(ruta_archivo, index=False) # index=False quita la columna 0,1,2,3 automática
-            messagebox.showinfo("Éxito", f"Reporte Excel guardado en:\n{ruta_archivo}")
-
-        except PermissionError:
-            messagebox.showerror("Error", "El archivo parece estar abierto en Excel.\nCierra el archivo e intenta de nuevo.")
-        except Exception as e:
-            messagebox.showerror("Error inesperado", f"No se pudo exportar: {e}")
-
-    # ==========================================
-    # 2. EXPORTACIÓN A PDF
-    # ==========================================
-    @staticmethod
-    def exportar_pdf(datos, columnas, titulo_reporte, nombre_base_archivo):
-        """
-        Genera un PDF 'dibujando' texto en coordenadas (x, y).
-        Usa la librería reportlab.
-        """
-        if not datos:
-            messagebox.showwarning("Atención", "No hay datos para exportar.")
-            return
-
-        try:
-            # 1. Preparar archivo
-            fecha_hoy = datetime.now().strftime('%Y%m%d')
-            nombre_sugerido = f"{nombre_base_archivo}_{fecha_hoy}"
-            
-            ruta_archivo = filedialog.asksaveasfilename(
-                defaultextension=".pdf", 
-                filetypes=[("Archivos PDF", "*.pdf")],
-                initialfile=nombre_sugerido
-            )
-
-            if not ruta_archivo: 
-                return
-
-            # 2. Configuración Inicial del "Lienzo" (Canvas)
-            c = canvas.Canvas(ruta_archivo, pagesize=letter)
-            ancho_pag, alto_pag = letter # Tamaño carta (612.0, 792.0 puntos)
-            
-            # Configuraciones de márgenes y posición
-            y_actual = alto_pag - 50  # Empezamos 50 puntos abajo del borde superior
-            margen_izq = 50
-            altura_linea = 20
-            
-            # Cálculo dinámico del ancho de columnas
-            # (Restamos 100 de margenes y dividimos entre cant. columnas)
-            ancho_columna = (ancho_pag - 100) / len(columnas)
-
-            # --- DIBUJAR TÍTULO ---
-            c.setFont("Helvetica-Bold", 16)
-            c.drawString(margen_izq, y_actual, titulo_reporte)
-            c.setFont("Helvetica", 10)
-            c.drawRightString(ancho_pag - 50, y_actual, f"Fecha: {datetime.now().strftime('%d/%m/%Y')}")
-            y_actual -= 40 # Bajamos el cursor
-
-            # --- DIBUJAR ENCABEZADOS DE TABLA ---
-            c.setFont("Helvetica-Bold", 9)
-            x_temp = margen_izq
-            
-            for col in columnas:
-                c.drawString(x_temp, y_actual, col.upper())
-                x_temp += ancho_columna
-            
-            # Línea debajo de los encabezados
-            y_actual -= 5
-            c.line(margen_izq, y_actual, ancho_pag - 50, y_actual)
-            y_actual -= 15 # Bajamos para los datos
-
-            # --- DIBUJAR FILAS DE DATOS ---
-            c.setFont("Helvetica", 8)
-            
-            for fila in datos:
-                # Verificar si se acabó la hoja
-                if y_actual < 50: 
-                    c.showPage()          # Crea una página nueva
-                    y_actual = alto_pag - 50 # Resetea la posición Y arriba
-                    c.setFont("Helvetica", 8) # Hay que volver a poner la fuente en pág nueva
-
-                x_temp = margen_izq
-                for valor in fila:
-                    texto = str(valor)
-                    
-                    # Truco: Si el texto es muy largo, lo cortamos para que no encime al vecino
-                    # Aproximadamente 15-20 caracteres caben bien por columna promedio
-                    limite_caracteres = int(ancho_columna / 5) 
-                    if len(texto) > limite_caracteres:
-                        texto = texto[:limite_caracteres-3] + "..."
-                    
-                    c.drawString(x_temp, y_actual, texto)
-                    x_temp += ancho_columna
+            if tipo == "clientes":
+                raw = clienteBD.ClienteBD.consultar(id_usu, rol)
+                datos_limpios = []
+                for r in raw:
+                    fila = [r[0], r[2], r[3], r[4], r[5], r[6]]
+                    if rol == 'admin' or rol == 1: fila.append(r[10])
+                    datos_limpios.append(fila)
                 
-                y_actual -= altura_linea # Siguiente fila
+                columnas = ["ID", "Nombre Completo", "Teléfono", "Dirección", "Correo", "Edad"]
+                if rol == 'admin' or rol == 1: columnas.append("Vendedor")
+                datos = datos_limpios
+                titulo = "Reporte de Clientes"
 
-            c.save() # Guardar y cerrar el PDF
-            messagebox.showinfo("Éxito", "PDF generado correctamente.")
-            
-        except PermissionError:
-            messagebox.showerror("Error", "El archivo PDF está abierto.\nCiérralo e intenta de nuevo.")
+            elif tipo == "ventas":
+                raw = ventaBD.VentaBD.consultar_ventas(id_usu, rol)
+                datos_limpios = []
+                for r in raw:
+                    txt_pago = GeneradorReportes.MAPA_PAGO_TXT.get(r[4], "Otro")
+                    fila = [r[0], r[1], r[2], r[3], txt_pago, r[5], r[7]]
+                    datos_limpios.append(fila)
+
+                columnas = ["Folio", "Cliente", "Monto ($)", "Prendas", "Pago", "Fecha", "Vendedor"]
+                datos = datos_limpios
+                titulo = "Reporte de Ventas"
+
+            elif tipo == "usuarios":
+                sql = "SELECT id_usuario, username, correo, es_admin FROM usuarios"
+                cursor.execute(sql)
+                raw = cursor.fetchall()
+                datos_limpios = []
+                for r in raw:
+                    rol_str = "ADMINISTRADOR" if r[3] == 1 else "Vendedor"
+                    datos_limpios.append([r[0], r[1], r[2], rol_str])
+                
+                columnas = ["ID", "Username", "Correo", "Rol"]
+                datos = datos_limpios
+                titulo = "Lista de Usuarios"
+
+            if formato == "excel":
+                GeneradorReportes._exportar_excel_pandas(datos, columnas, tipo)
+            elif formato == "pdf":
+                GeneradorReportes._exportar_pdf_canvas(datos, columnas, titulo, tipo)
+
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo generar PDF: {e}")
+            messagebox.showerror("Error Reporte", f"Fallo al generar datos: {e}")
+
+    @staticmethod
+    def _exportar_excel_pandas(datos, columnas, nombre_base):
+        if not datos: messagebox.showwarning("Atención", "Sin datos para exportar."); return
+        try:
+            df = pd.DataFrame(datos, columns=columnas)
+            archivo = f"{nombre_base}_{datetime.now().strftime('%Y%m%d')}"
+            path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Excel", "*.xlsx")], initialfile=archivo)
+            if path:
+                df.to_excel(path, index=False)
+                messagebox.showinfo("Éxito", f"Excel guardado:\n{path}")
+        except PermissionError: messagebox.showerror("Error", "Cierre el archivo Excel e intente de nuevo")
+        except Exception as e: messagebox.showerror("Error", str(e))
+
+    @staticmethod
+    def _exportar_pdf_canvas(datos, columnas, titulo, nombre_base):
+        if not datos: messagebox.showwarning("Atención", "Sin datos para exportar."); return
+        try:
+            archivo = f"{nombre_base}_{datetime.now().strftime('%Y%m%d')}"
+            path = filedialog.asksaveasfilename(defaultextension=".pdf", filetypes=[("PDF", "*.pdf")], initialfile=archivo)
+            if not path: return
+
+            c = canvas.Canvas(path, pagesize=letter)
+            w, h = letter
+            y = h - 50; x = 50
+            
+            c.setFont("Helvetica-Bold", 16); c.drawString(x, y, titulo)
+            c.setFont("Helvetica", 10); c.drawRightString(w-50, y, datetime.now().strftime("%d/%m/%Y"))
+            y -= 40
+
+            ancho_col = (w - 100) / len(columnas)
+            c.setFont("Helvetica-Bold", 9)
+            for i, col in enumerate(columnas): c.drawString(x + (i*ancho_col), y, col.upper())
+            y -= 5; c.line(x, y, w-50, y); y -= 15
+
+            c.setFont("Helvetica", 8)
+            for fila in datos:
+                if y < 50: c.showPage(); y = h - 50; c.setFont("Helvetica", 8)
+                for i, val in enumerate(fila):
+                    txt = str(val)
+                    if len(txt) > int(ancho_col/5): txt = txt[:int(ancho_col/5)-3] + "..."
+                    c.drawString(x + (i*ancho_col), y, txt)
+                y -= 20
+            
+            c.save()
+            messagebox.showinfo("Éxito", "PDF Generado correctamente.")
+        except PermissionError: messagebox.showerror("Error", "El PDF está abierto, ciérrelo.")
+        except Exception as e: messagebox.showerror("Error", str(e))

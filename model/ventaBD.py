@@ -1,123 +1,95 @@
-from model.conexionBD import conexion, cursor
+from conexionBD import conexion, cursor
 
 class VentaBD:
     """
-    Clase para gestionar el historial de ventas.
-    Incluye lógica para filtrar reportes por fecha y rol de usuario.
+    Clase para gestionar las Ventas.
     """
 
-    # ==========================================
-    # 1. REGISTRAR (CREATE)
-    # ==========================================
     @staticmethod
-    def registrar_venta(id_usuario, id_cliente, monto, num_prendas, metodo_pago):
+    def registrar_venta(id_usuario, id_cliente, monto, num_prendas, metodo_pago_num):
         try:
-            # Usamos NOW() de SQL para que la fecha sea exacta del servidor
             sql = """
-                INSERT INTO ventas (id_usuario, id_cliente, monto, num_prendas, metodo_pago, fecha) 
+                INSERT INTO ventas (id_usuario, id_cliente, metodo_pago, monto, num_prendas, fecha) 
                 VALUES (%s, %s, %s, %s, %s, NOW())
             """
-            val = (id_usuario, id_cliente, monto, num_prendas, metodo_pago)
+            val = (id_usuario, id_cliente, metodo_pago_num, monto, num_prendas)
             
             cursor.execute(sql, val)
             conexion.commit()
             return True
-            
         except Exception as e:
-            conexion.rollback() # Importante: Deshacer cambios si falla
-            print(f"Error al registrar venta: {e}")
+            conexion.rollback()
+            print(f"Error Registrar Venta: {e}")
             return False
 
-    # ==========================================
-    # 2. CONSULTAR (READ - Con Filtros Dinámicos)
-    # ==========================================
     @staticmethod
     def consultar_ventas(id_usuario, rol, fecha_filtro=None):
         try:
-            # Consulta Base: Traemos datos de la venta + Nombre Cliente + Nombre Vendedor
-            # Usamos alias (v, c, u) para escribir menos y ser más claros
+            # Obtenemos datos uniendo tablas para mostrar nombres en lugar de IDs
             base_sql = """
                 SELECT 
-                    v.id,           -- 0
-                    c.nombre,       -- 1 (Nombre Cliente)
-                    v.monto,        -- 2
-                    v.num_prendas,  -- 3
-                    v.metodo_pago,  -- 4
-                    v.fecha,        -- 5
-                    c.id,           -- 6 (ID Cliente oculto)
-                    u.nombre        -- 7 (Nombre Vendedor)
+                    v.id_venta, 
+                    CONCAT_WS(' ', c.nombre, c.apellido_paterno, c.apellido_materno), 
+                    v.monto, 
+                    v.num_prendas, 
+                    v.metodo_pago, 
+                    v.fecha, 
+                    c.id_cliente, 
+                    u.username
                 FROM ventas v
-                INNER JOIN clientes c ON v.id_cliente = c.id
-                INNER JOIN usuarios u ON v.id_usuario = u.id
+                INNER JOIN clientes c ON v.id_cliente = c.id_cliente
+                INNER JOIN usuarios u ON v.id_usuario = u.id_usuario
             """
             
             filtros = []
             params = []
 
-            # --- Lógica de Filtros ---
-            
-            # 1. Si NO es admin, solo ve sus propias ventas
-            if rol != 'admin':
+            # Filtro por Rol (Seguridad)
+            if rol != 1 and rol != 'admin':
                 filtros.append("v.id_usuario = %s")
                 params.append(id_usuario)
 
-            # 2. Si hay texto en el buscador de fecha (YYYY-MM)
+            # Filtro por Fecha (Buscador)
             if fecha_filtro:
-                # Usamos LIKE para buscar coincidencias de texto en la fecha
                 filtros.append("v.fecha LIKE %s")
                 params.append(f"{fecha_filtro}%")
 
-            # --- Armado final de la consulta ---
             if filtros:
-                # Unimos los filtros con " AND "
-                # Ejemplo: "WHERE v.id_usuario = 1 AND v.fecha LIKE '2023%'"
                 base_sql += " WHERE " + " AND ".join(filtros)
             
-            # Ordenamos por ID descendente (las más nuevas primero)
-            base_sql += " ORDER BY v.id DESC"
+            base_sql += " ORDER BY v.id_venta DESC"
 
             cursor.execute(base_sql, tuple(params))
             return cursor.fetchall()
             
         except Exception as e:
-            print(f"Error al consultar historial de ventas: {e}")
+            print(f"Error Consultar Ventas: {e}")
             return []
 
-    # ==========================================
-    # 3. ACTUALIZAR (UPDATE)
-    # ==========================================
     @staticmethod
-    def actualizar_venta(id_venta, id_cliente, monto, num_prendas, metodo_pago):
+    def actualizar_venta(id_venta, id_cliente, monto, num_prendas, metodo_pago_num):
         try:
             sql = """
                 UPDATE ventas 
                 SET id_cliente=%s, monto=%s, num_prendas=%s, metodo_pago=%s 
-                WHERE id=%s
+                WHERE id_venta=%s
             """
-            val = (id_cliente, monto, num_prendas, metodo_pago, id_venta)
+            val = (id_cliente, monto, num_prendas, metodo_pago_num, id_venta)
             
             cursor.execute(sql, val)
             conexion.commit()
             return True
-            
         except Exception as e:
             conexion.rollback()
-            print(f"Error al actualizar venta: {e}")
+            print(f"Error Update Venta: {e}")
             return False
 
-    # ==========================================
-    # 4. ELIMINAR / ANULAR (DELETE)
-    # ==========================================
     @staticmethod
     def eliminar_venta(id_venta):
         try:
-            sql = "DELETE FROM ventas WHERE id = %s"
-            cursor.execute(sql, (id_venta,))
-            
+            cursor.execute("DELETE FROM ventas WHERE id_venta = %s", (id_venta,))
             conexion.commit()
             return True
-            
-        except Exception as e:
+        except:
             conexion.rollback()
-            print(f"Error al eliminar venta: {e}")
             return False

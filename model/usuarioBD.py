@@ -1,26 +1,24 @@
 import hashlib
-# Importamos explícitamente la conexión y el cursor
-from model.conexionBD import conexion, cursor
+from conexionBD import conexion, cursor
 
 class UsuarioBD:
     """
-    Clase encargada de la autenticación y gestión de usuarios.
-    Utiliza SHA-256 para el hash de contraseñas (Nivel básico de seguridad).
+    Clase encargada de la autenticación y gestión de usuarios en la base de datos.
     """
 
     @staticmethod
     def login(correo, password):
+        """Verifica las credenciales del usuario para iniciar sesión."""
         try:
-            # 1. Encriptamos la contraseña recibida para compararla con la BD
+            # 1. Encriptamos la contraseña recibida para compararla
             pass_encriptada = hashlib.sha256(password.encode()).hexdigest()
             
-            # 2. Buscamos usuario que coincida en correo Y contraseña
+            # 2. Buscamos coincidencia en la BD
             sql = "SELECT * FROM usuarios WHERE correo = %s AND password = %s"
             cursor.execute(sql, (correo, pass_encriptada))
             
+            # Retorna la tupla con datos del usuario o None
             usuario = cursor.fetchone()
-            
-            # usuario será una tupla con los datos (id, nombre, ..., rol) o None si no existe
             return usuario
             
         except Exception as e:
@@ -28,24 +26,24 @@ class UsuarioBD:
             return None
 
     @staticmethod
-    def registrar(nombre, apellidos, correo, password, rol="ususario"):
+    def registrar(username, correo, password, es_admin_num=0):
+        """Registra un nuevo usuario en la base de datos."""
         try:
-            # 1. Encriptamos la contraseña antes de guardarla
+            # 1. Encriptamos la contraseña antes de guardar
             pass_encriptada = hashlib.sha256(password.encode()).hexdigest()
             
-            # 2. Definimos la consulta. Asignamos 'usuario' como rol predeterminado.
+            # 2. Insertamos el registro
             sql = """
-                INSERT INTO usuarios (nombre, apellidos, correo, password, rol) 
-                VALUES (%s, %s, %s, %s, %s)
+                INSERT INTO usuarios (username, correo, password, es_admin) 
+                VALUES (%s, %s, %s, %s)
             """
-            val = (nombre, apellidos, correo, pass_encriptada, rol)
+            val = (username, correo, pass_encriptada, es_admin_num)
             
             cursor.execute(sql, val)
-            conexion.commit() # Confirmar cambios
+            conexion.commit() # Guardamos cambios
             return True
             
         except Exception as e:
-            # Si ocurre un error (ej. correo duplicado), deshacemos cualquier cambio pendiente
-            conexion.rollback()
+            conexion.rollback() # Deshacemos si hubo error
             print(f"Error al registrar usuario: {e}")
             return False
