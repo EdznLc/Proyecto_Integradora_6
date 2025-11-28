@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Servidor: 127.0.0.1
--- Tiempo de generación: 26-11-2025 a las 04:43:29
+-- Tiempo de generación: 28-11-2025 a las 01:14:37
 -- Versión del servidor: 10.4.32-MariaDB
 -- Versión de PHP: 8.2.12
 
@@ -48,8 +48,7 @@ CREATE TABLE `clientes` (
 INSERT INTO `clientes` (`id_cliente`, `id_usuario_registro`, `nombre`, `apellido_paterno`, `apellido_materno`, `telefono`, `direccion`, `correo`, `edad`) VALUES
 (1, 2, 'Jose', 'Guillen', 'Lopez', '1231231231', 'Contadores 209', 'jose@gmail.com', 19),
 (2, 2, 'Luis Hector', 'Jimenez', 'Delgado', '1234567890', 'Su Casa', 'luis@gmail.com', 19),
-(3, 1, 'Fernando', 'Meraz', 'Sida', '1231234121', 'UTD', 'fer@gmail.com', 23),
-(4, 2, 'Alfredo', 'Orrico', '', '1233456789', '12', '12', 12);
+(3, 1, 'Fernando', 'Meraz', 'Sida', '1231234121', 'UTD', 'fer@gmail.com', 23);
 
 -- --------------------------------------------------------
 
@@ -106,6 +105,7 @@ INSERT INTO `ventas` (`id_venta`, `id_usuario`, `id_cliente`, `metodo_pago`, `mo
 --
 ALTER TABLE `clientes`
   ADD PRIMARY KEY (`id_cliente`),
+  ADD UNIQUE KEY `correo` (`correo`),
   ADD KEY `id_usuario_registro` (`id_usuario_registro`);
 
 --
@@ -113,7 +113,8 @@ ALTER TABLE `clientes`
 --
 ALTER TABLE `usuarios`
   ADD PRIMARY KEY (`id_usuario`),
-  ADD UNIQUE KEY `correo` (`correo`);
+  ADD UNIQUE KEY `correo` (`correo`),
+  ADD UNIQUE KEY `username` (`username`) USING HASH;
 
 --
 -- Indices de la tabla `ventas`
@@ -131,7 +132,7 @@ ALTER TABLE `ventas`
 -- AUTO_INCREMENT de la tabla `clientes`
 --
 ALTER TABLE `clientes`
-  MODIFY `id_cliente` smallint(3) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_cliente` smallint(3) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- AUTO_INCREMENT de la tabla `usuarios`
@@ -143,7 +144,7 @@ ALTER TABLE `usuarios`
 -- AUTO_INCREMENT de la tabla `ventas`
 --
 ALTER TABLE `ventas`
-  MODIFY `id_venta` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `id_venta` smallint(4) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 
 --
 -- Restricciones para tablas volcadas
