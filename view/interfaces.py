@@ -225,61 +225,89 @@ class Vista:
         tk.Button(toolbar, text="🔍", command=lambda: funciones.Funciones.llenar_tabla_clientes(tree, usuario, v_bus.get())).pack(side="left", padx=5)
         tk.Button(toolbar, text="✖", bg=BTN_DANGER_COLOR, fg="white", command=lambda: [v_bus.set(""), funciones.Funciones.llenar_tabla_clientes(tree, usuario)]).pack(side="left")
 
-        # Tabla
-        cols = ("id", "idu", "nom", "tel", "dir", "cor", "edad")
+        # --- TABLA CON COLUMNAS SEPARADAS ---
+        # Definimos las columnas exactas
+        cols = ("id", "nom", "pat", "mat", "tel", "dir", "cor", "edad")
         tree = ttk.Treeview(body, columns=cols, show="headings")
-        headers = ["ID", "Reg.Por", "Nombre Completo", "Teléfono", "Dirección", "Correo", "Edad"]
-        for c, h in zip(cols, headers): tree.heading(c, text=h, command=lambda _c=c: funciones.Funciones.ordenar_columna(tree, _c, False))
         
+        # Encabezados
+        headers = ["ID", "Nombre", "Paterno", "Materno", "Teléfono", "Dirección", "Correo", "Edad"]
+        for c, h in zip(cols, headers): 
+            tree.heading(c, text=h, command=lambda _c=c: funciones.Funciones.ordenar_columna(tree, _c, False))
+        
+        # Configuración de columnas
         tree.column("id", width=40, anchor="center")
-        tree.column("idu", width=0, stretch=False)
-        tree.column("nom", anchor="w")      # Nombre a la izquierda
-        tree.column("tel", anchor="center") # Telefono al centro
-        tree.column("dir", anchor="w")      # Dirección a la izquierda
-        tree.column("cor", anchor="center") # Correo al centro
+        tree.column("nom", width=100, anchor="w")
+        tree.column("pat", width=100, anchor="w")
+        tree.column("mat", width=100, anchor="w")
+        tree.column("tel", width=90, anchor="center")
+        tree.column("dir", width=150, anchor="w")
+        tree.column("cor", width=150, anchor="center")
         tree.column("edad", width=50, anchor="center")
+
         tree.pack(side="left", fill="both", expand=True)
         
         # Acciones
         actions = tk.Frame(body, bg=BG_APP, width=150); actions.pack(side="right", fill="y", padx=(15, 0)); actions.pack_propagate(False)
         def get_sel(): return tree.item(tree.selection()) if tree.selection() else None
+        
         Vista.crear_boton(actions, "Editar", lambda: Vista.modal_cliente(window, usuario, get_sel(), tree) if get_sel() else messagebox.showwarning("Atención", "Seleccione un registro"), BTN_EDIT_COLOR).pack(fill="x", pady=5)
         Vista.crear_boton(actions, "Eliminar", lambda: funciones.Funciones.borrar_cliente_tabla(window, usuario, get_sel()['text'], tree) if get_sel() else messagebox.showwarning("Atención", "Seleccione un registro"), BTN_DELETE_COLOR).pack(fill="x", pady=5)
         
+        e_bus.bind("<Return>", lambda e: funciones.Funciones.llenar_tabla_clientes(tree, usuario, v_bus.get()))
         funciones.Funciones.llenar_tabla_clientes(tree, usuario)
 
     @staticmethod
     def modal_cliente(parent, usuario, item_editar, tree, callback=None):
-        modal = tk.Toplevel(parent); modal.geometry("400x650"); modal.config(bg="white")
+        modal = tk.Toplevel(parent)
+        modal.geometry("400x650")
+        modal.config(bg="white")
+        
         v_nom = tk.StringVar(); v_pat = tk.StringVar(); v_mat = tk.StringVar()
         v_tel = tk.StringVar(); v_dir = tk.StringVar(); v_cor = tk.StringVar(); v_edad = tk.StringVar()
-        id_cli = None; tit = "Nuevo Cliente"
+        id_cli = None
+        titulo = "Nuevo Cliente"
 
         if item_editar:
-            tit = "Editar Cliente"; id_cli = item_editar['text']; vals = item_editar['values']
-            partes = vals[2].split(" ")
-            v_nom.set(partes[0] if len(partes)>0 else "")
-            v_pat.set(partes[1] if len(partes)>1 else "")
-            v_tel.set(vals[3]); v_dir.set(vals[4]); v_cor.set(vals[5]); v_edad.set(vals[6])
+            titulo = "Editar Cliente"
+            id_cli = item_editar['text']
+            vals = item_editar['values']
+            
+            # --- RECUPERACIÓN DIRECTA DE DATOS (SIN SPLIT) ---
+            # Como ahora la tabla tiene columnas separadas, leemos directo por índice
+            # vals = [ID, Nombre, Paterno, Materno, Tel, Dir, Correo, Edad]
+            try:
+                v_nom.set(vals[1]) # Nombre
+                v_pat.set(vals[2]) # Paterno
+                v_mat.set(vals[3]) # Materno
+                v_tel.set(vals[4])
+                v_dir.set(vals[5])
+                v_cor.set(vals[6])
+                v_edad.set(vals[7])
+            except IndexError:
+                # Fallback por si acaso (no debería pasar)
+                pass
 
-        tk.Label(modal, text=tit, font=("Segoe UI", 16, "bold"), bg="white", fg=COLOR_PRIMARY).pack(pady=10)
-        f = tk.Frame(modal, bg="white", padx=40); f.pack(fill="both")
+        tk.Label(modal, text=titulo, font=("Segoe UI", 16, "bold"), bg="white", fg=COLOR_PRIMARY).pack(pady=10)
+        f_form = tk.Frame(modal, bg="white", padx=40)
+        f_form.pack(fill="both")
         
-        def crear_fila(texto, variable, validacion=None): 
-            tk.Label(f, text=texto, bg="white", fg="gray", anchor="w").pack(fill="x", pady=(5,0))
-            Vista.crear_input(f, variable, validacion=validacion)
+        def agregar_fila(texto, variable, validacion=None): 
+            tk.Label(f_form, text=texto, bg="white", fg="gray", anchor="w").pack(fill="x", pady=(5,0))
+            Vista.crear_input(f_form, variable, validacion=validacion)
         
-        crear_fila("Nombre(s)", v_nom)
-        crear_fila("Apellido Paterno", v_pat)
-        crear_fila("Apellido Materno (Opcional)", v_mat)
-        crear_fila("Teléfono", v_tel, "tel")
-        crear_fila("Dirección", v_dir)
-        crear_fila("Correo Electrónico", v_cor)
-        crear_fila("Edad", v_edad, "int")
+        agregar_fila("Nombre(s)", v_nom)
+        agregar_fila("Apellido Paterno", v_pat)
+        agregar_fila("Apellido Materno (Opcional)", v_mat)
+        agregar_fila("Teléfono", v_tel, "tel")
+        agregar_fila("Dirección", v_dir)
+        agregar_fila("Correo Electrónico", v_cor)
+        agregar_fila("Edad", v_edad, "int")
         
         tk.Frame(modal, bg="white", height=10).pack()
-        Vista.crear_boton(modal, "GUARDAR", lambda: funciones.Funciones.guardar_o_editar_cliente(
-            parent, tree, id_cli, usuario, v_nom.get(), v_pat.get(), v_mat.get(), v_tel.get(), v_dir.get(), v_cor.get(), v_edad.get(), modal, callback)).pack(fill="x", padx=40, pady=20)
+        Vista.crear_boton(modal, "GUARDAR", 
+            lambda: funciones.Funciones.guardar_o_editar_cliente(
+                parent, tree, id_cli, usuario, v_nom.get(), v_pat.get(), v_mat.get(), v_tel.get(), v_dir.get(), v_cor.get(), v_edad.get(), modal, callback)).pack(fill="x", padx=40, pady=20)
 
     # ==========================================
     # 4. VENTAS

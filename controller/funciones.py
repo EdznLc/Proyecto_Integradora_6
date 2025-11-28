@@ -89,27 +89,61 @@ class Funciones:
             tree.delete(item)
         
         id_usuario = usuario[0]
-        rol = usuario[5] # Rol en texto que añadimos al login
+        # El rol texto lo pusimos en la última posición en el login
+        rol = usuario[-1] 
         
         datos = clienteBD.ClienteBD.consultar(id_usuario, rol)
         filtro = filtro_texto.lower() if filtro_texto else ""
         
         for row in datos:
-            # row[2] es el nombre completo concatenado
-            nombre_cliente = str(row[2]).lower()
+            # row[2] es Nombre Completo (concatenado por SQL, lo usamos SOLO para filtrar)
+            nombre_completo_busqueda = str(row[2]).lower()
             
-            if filtro and filtro not in nombre_cliente:
-                continue
+            # Filtro de búsqueda
+            if filtro and filtro not in nombre_completo_busqueda:
+                continue 
             
-            # Insertamos los datos en la tabla
-            tree.insert("", "end", text=row[0], values=(row[0], row[1], row[2], row[3], row[4], row[5], row[6]))
+            # DATOS REALES QUE VIENEN DEL MODELO (Indices ajustados al SQL de clienteBD):
+            # 0:id, 3:tel, 4:dir, 5:cor, 6:edad, 7:NOM, 8:PAT, 9:MAT
+            
+            # Insertamos en orden visual: ID, Nombre, Paterno, Materno, Tel, Dir, Correo, Edad
+            # OJO: row[7], row[8], row[9] son los campos separados que trae tu consulta SQL
+            tree.insert("", "end", text=row[0], values=(
+                row[0],   # ID
+                row[7],   # Nombre
+                row[8],   # Paterno
+                row[9],   # Materno
+                row[3],   # Teléfono
+                row[4],   # Dirección
+                row[5],   # Correo
+                row[6]    # Edad
+            ))
 
     @staticmethod
-    def guardar_o_editar_cliente(parent, tree, id_cliente, usuario_actual, nombre, pat, mat, telefono, direccion, correo, edad, modal, callback=None):
+    def guardar_o_editar_cliente(parent, tree, id_cliente, usuario_actual, nombre, pat, mat, telefono: int, direccion, correo, edad: int, modal, callback=None):
         # Validaciones
-        if not nombre or not pat or not telefono:
-            messagebox.showwarning("Atención", "Nombre, Apellido Paterno y Teléfono son obligatorios.")
+        if not nombre:
+            messagebox.showwarning("Atención", "El nombre es obligatorio.")
             return
+        elif not pat:
+            messagebox.showwarning("Atencion", "El apellido paterno es obligatorio.")
+            return
+        elif not telefono or len(telefono) < 10:
+            messagebox.showwarning("Atencion", "El telefono es obligatorio y debe de componerse de 10 caracteres.")
+            return
+        elif not direccion:
+            messagebox.showwarning("Atencion", "La direccion es obligatoria.")
+            return
+        elif not correo:
+            messagebox.showwarning("Atencion", "El correo es obligatorio.")
+            return
+        elif not edad:
+            messagebox.showwarning("Atencion", "La edad es obligatoria.")
+            return
+        elif edad not in range(0, 100):
+            messagebox.showwarning("Atencion", "La Edad debe de estar en un rango entre 0 y 100 años.")
+            return
+        
         try: 
             edad_int = int(edad) if edad else 0
         except ValueError:
