@@ -135,7 +135,7 @@ class Vista:
         tk.Label(card, text="Bonitas Fashions", font=("Gabriola", 32, "bold"), bg="white", fg=COLOR_PRIMARY).pack()
         
         v_cor = tk.StringVar(); v_pas = tk.StringVar()
-        tk.Label(card, text="Correo Electrónico", bg="white", font=FONT_BOLD, fg=COLOR_TEXT_MAIN).pack(anchor="w")
+        tk.Label(card, text="Correo Electrónico o Nombre de Usuario", bg="white", font=FONT_BOLD, fg=COLOR_TEXT_MAIN).pack(anchor="w")
         Vista.crear_input(card, v_cor)
         tk.Label(card, text="Contraseña", bg="white", font=FONT_BOLD, fg=COLOR_TEXT_MAIN).pack(anchor="w", pady=(10,0))
         Vista.crear_input(card, v_pas, show="*")
@@ -264,7 +264,7 @@ class Vista:
         modal.config(bg="white")
         
         v_nom = tk.StringVar(); v_pat = tk.StringVar(); v_mat = tk.StringVar()
-        v_tel = tk.StringVar(); v_dir = tk.StringVar(); v_cor = tk.StringVar(); v_edad = tk.StringVar()
+        v_tel = tk.StringVar(); v_dir = tk.StringVar(); v_cor = tk.StringVar(); v_edad = tk.IntVar()
         id_cli = None
         titulo = "Nuevo Cliente"
 
@@ -364,7 +364,7 @@ class Vista:
     @staticmethod
     def modal_venta(parent, usuario, item_editar, tree):
         modal = tk.Toplevel(parent); modal.geometry("400x600"); modal.config(bg="white"); tit="Nueva Venta"; id_venta=None
-        v_cli = tk.StringVar(); v_monto = tk.StringVar(); v_pren = tk.StringVar(value="1"); v_met = tk.StringVar()
+        v_cli = tk.StringVar(); v_monto = tk.DoubleVar(); v_pren = tk.IntVar(value="1"); v_met = tk.StringVar()
 
         rol = usuario[5] if len(usuario)>5 else "user"
         data_cli = clienteBD.ClienteBD.consultar(usuario[0], rol)

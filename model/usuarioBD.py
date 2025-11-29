@@ -7,15 +7,15 @@ class UsuarioBD:
     """
 
     @staticmethod
-    def login(correo, password):
+    def login(credencial, password):
         """Verifica las credenciales del usuario para iniciar sesión."""
         try:
             # 1. Encriptamos la contraseña recibida para compararla
             pass_encriptada = hashlib.sha256(password.encode()).hexdigest()
             
             # 2. Buscamos coincidencia en la BD
-            sql = "SELECT * FROM usuarios WHERE correo = %s AND password = %s"
-            cursor.execute(sql, (correo, pass_encriptada))
+            sql = "SELECT * FROM usuarios WHERE (correo = %s OR username = %s) AND password = %s"
+            cursor.execute(sql, (credencial, credencial, pass_encriptada))
             
             # Retorna la tupla con datos del usuario o None
             usuario = cursor.fetchone()

@@ -38,17 +38,29 @@ class Funciones:
 
     @staticmethod
     def guardar_usuario_admin(window, username, correo, password, rol_texto, modal):
-        if not username or not correo or not password:
-            messagebox.showwarning("Atención", "Todos los campos son obligatorios.")
+        if not username:
+            messagebox.showwarning("Atención", "El Nombre de usuario es obligatorio.")
             return
-            
+        elif not correo:
+            messagebox.showwarning("Atención", "El correo es obligatorio.")
+            return
+        elif not password: 
+            messagebox.showwarning("Atención", "Necesita ingresar una contraseña.")
+            return
+        elif len(password) not in range(8, 21):
+            if len(password) < 8:
+                messagebox.showwarning("Atención", "La contraseña es muy corta, debe tener más de 8 caracteres.")
+                return
+            else:
+                messagebox.showwarning("Atención", "La contraseña es muy larga, debe tener menos de 20 caracteres.")
+                return
         es_admin = 1 if rol_texto == "admin" else 0
         
         if usuarioBD.UsuarioBD.registrar(username, correo, password, es_admin):
             messagebox.showinfo("Éxito", "Usuario creado correctamente.")
             modal.destroy()
         else:
-            messagebox.showerror("Error", "No se pudo registrar el usuario.\nVerifique que el correo no esté duplicado.")
+            messagebox.showerror("Error", "No se pudo registrar el usuario.\nVerifique que el correo o el nombre de usuario no esté duplicado.")
 
     # ==========================================
     # 2. HERRAMIENTAS
@@ -169,11 +181,11 @@ class Funciones:
             if callback: 
                 callback()
         else:
-            messagebox.showerror("Error", "Ocurrió un error en la base de datos.")
+            messagebox.showerror("Error", "Ocurrió un error en la base de datos. (Revisa que el correo no sea duplicado)")
 
     @staticmethod
     def borrar_cliente_tabla(window, usuario, id_cliente, tree):
-        if not id_cliente: return
+        if not id_cliente or not usuario: return
         
         if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este cliente?"):
             if clienteBD.ClienteBD.eliminar(id_cliente):
@@ -208,8 +220,14 @@ class Funciones:
 
     @staticmethod
     def guardar_o_editar_venta(window, tree, usuario, id_venta, cliente_str, monto, prendas, pago_txt, modal):
-        if not cliente_str or not monto: 
-            messagebox.showwarning("Atención", "Faltan datos para registrar la venta.")
+        if not cliente_str:
+            messagebox.showwarning("Atención", "Es necesario proporcionar el nombre del cliente.")
+            return
+        elif monto <= 0 or monto >= 10000: 
+            messagebox.showwarning("Atención", "Monto fuera de rango (Max: 10,000)")
+            return
+        elif prendas not in range(1, 100):
+            messagebox.showwarning("Atención", "Cantidad de prendas fuera de rango (1-100).")
             return
             
         try:
