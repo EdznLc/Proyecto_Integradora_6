@@ -5,10 +5,10 @@ try:
         host="localhost",
         user="root",
         password="", 
-        database="bd_ventaropa" # Cambiado a tu base de datos
+        database="bd_ventaropa" 
     )
     cursor = conexion.cursor(buffered=True)
-except:
-    print("Error al conectar a la base de datos")
+except Exception as e:
+    print(f"Error al conectar a la base de datos: {e}")
     conexion = None
     cursor = None

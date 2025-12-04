@@ -151,7 +151,7 @@ class Funciones:
             if tree: Funciones.llenar_tabla_clientes(tree, usuario_actual)
             if callback: callback()
         else:
-            messagebox.showerror("Error", "Database Error.")
+            messagebox.showerror("Error", "Maybe the email is already registered, try again.")
 
     @staticmethod
     def borrar_cliente_tabla(window, usuario, id_cliente, tree):
