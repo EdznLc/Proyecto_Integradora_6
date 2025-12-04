@@ -20,7 +20,7 @@ class ClienteBD:
             conexion.commit()
             return True
         except Exception as e:
-            print(f"Error Insertar Cliente: {e}")
+            print(f"Error Inseting Client: {e}")
             return False
 
     @staticmethod
@@ -53,7 +53,7 @@ class ClienteBD:
                 
             return cursor.fetchall()
         except Exception as e:
-            print(f"Error Consultar Clientes: {e}")
+            print(f"Error Consulting Clients: {e}")
             return []
 
     @staticmethod
@@ -71,7 +71,7 @@ class ClienteBD:
             conexion.commit()
             return True
         except Exception as e:
-            print(f"Error Update Cliente: {e}")
+            print(f"Error Updating Client: {e}")
             return False
 
     @staticmethod
@@ -82,5 +82,5 @@ class ClienteBD:
             conexion.commit()
             return True
         except Exception as e:
-            print(f"Error Eliminar Cliente: {e}")
+            print(f"Error Deketing Client: {e}")
             return False

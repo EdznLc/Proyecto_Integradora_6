@@ -22,7 +22,7 @@ class UsuarioBD:
             return usuario
             
         except Exception as e:
-            print(f"Error crítico en Login: {e}")
+            print(f"Error in Login: {e}")
             return None
 
     @staticmethod
@@ -45,5 +45,15 @@ class UsuarioBD:
             
         except Exception as e:
             conexion.rollback() # Deshacemos si hubo error
-            print(f"Error al registrar usuario: {e}")
+            print(f"Error registering a user: {e}")
+            return False
+    
+    @staticmethod
+    def existe_correo(correo):
+        """Verifica si un correo ya está registrado (True/False)"""
+        try:
+            sql = "SELECT id_usuario FROM usuarios WHERE correo = %s"
+            cursor.execute(sql, (correo,))
+            return cursor.fetchone() is not None
+        except:
             return False

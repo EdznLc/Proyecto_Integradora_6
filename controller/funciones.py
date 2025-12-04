@@ -1,15 +1,31 @@
 from tkinter import messagebox
+import re
 from model import usuarioBD, clienteBD, ventaBD
 
 class Funciones:
     """
     CONTROLADOR PRINCIPAL
-    Gestiona la lógica de negocio y comunica la Vista con el Modelo.
+    Maneja la lógica de negocio, validaciones y comunicación con la BD.
     """
 
-    # Diccionarios para traducir el método de pago (BD <-> Vista)
-    MAPA_PAGO_BD = {"Efectivo": 1, "Tarjeta": 2, "Transferencia": 3}
-    MAPA_PAGO_TXT = {1: "Efectivo", 2: "Tarjeta", 3: "Transferencia"}
+    # --- CAMBIO 1: MAPAS EN INGLÉS PARA COINCIDIR CON LA INTERFAZ ---
+    MAPA_PAGO_BD = {"Cash": 1, "Credit Card": 2, "Transfer": 3}
+    MAPA_PAGO_TXT = {1: "Cash", 2: "Credit Card", 3: "Transfer"}
+
+    # ==========================================
+    # HERRAMIENTAS DE VALIDACIÓN
+    # ==========================================
+    @staticmethod
+    def es_nombre_valido(texto):
+        """Revisa que solo tenga letras y espacios"""
+        patron = r"^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$"
+        return re.match(patron, texto) is not None
+
+    @staticmethod
+    def es_correo_valido(texto):
+        """Revisa formato básico de correo"""
+        patron = r"^[\w\.-]+@[\w\.-]+\.\w+$"
+        return re.match(patron, texto) is not None
 
     # ==========================================
     # 1. USUARIOS
@@ -17,249 +33,187 @@ class Funciones:
     @staticmethod
     def ingresar(window, correo, password):
         if not correo or not password:
-            messagebox.showwarning("Atención", "Por favor, llene todos los campos.")
+            # CAMBIO: Mensaje en inglés
+            messagebox.showwarning("Attention", "Please, fill in all the fields.")
             return
 
         usuario = usuarioBD.UsuarioBD.login(correo, password)
         
         if usuario:
             from view import interfaces 
-            # Determinar rol basado en el número (1=Admin, 0=User)
-            es_admin_num = usuario[4]
+            es_admin_num = usuario[4] 
             rol_str = "admin" if es_admin_num == 1 else "user"
             
-            # Mensaje de bienvenida
-            messagebox.showinfo("Bienvenido", f"Hola {usuario[1]}")
+            usuario_con_rol = usuario + (rol_str,)
             
-            # Pasamos el usuario + el rol en texto a la siguiente ventana
-            interfaces.Vista.menu_principal(window, usuario + (rol_str,)) 
+            # CAMBIO: Mensaje en inglés
+            messagebox.showinfo("Welcome", f"Access Granted.\n\nUser: {usuario[1]}\nRole: {rol_str.upper()}")
+            interfaces.Vista.menu_principal(window, usuario_con_rol) 
         else:
-            messagebox.showerror("Error", "Correo o contraseña incorrectos.")
+            # CAMBIO: Mensaje en inglés
+            messagebox.showerror("Access Error", "Incorrect Email or Password.")
 
     @staticmethod
     def guardar_usuario_admin(window, username, correo, password, rol_texto, modal):
-        if not username:
-            messagebox.showwarning("Atención", "El Nombre de usuario es obligatorio.")
+        if not username or not correo or not password:
+            messagebox.showwarning("Attention", "All fields are required.")
             return
-        elif not correo:
-            messagebox.showwarning("Atención", "El correo es obligatorio.")
+
+        if not Funciones.es_nombre_valido(username):
+            messagebox.showwarning("Invalid Username", "Username can only contain letters and spaces.")
             return
-        elif not password: 
-            messagebox.showwarning("Atención", "Necesita ingresar una contraseña.")
+
+        if not Funciones.es_correo_valido(correo):
+            messagebox.showwarning("Invalid Email", "The email format is invalid (example@mail.com).")
             return
-        elif len(password) not in range(8, 21):
-            if len(password) < 8:
-                messagebox.showwarning("Atención", "La contraseña es muy corta, debe tener más de 8 caracteres.")
-                return
-            else:
-                messagebox.showwarning("Atención", "La contraseña es muy larga, debe tener menos de 20 caracteres.")
-                return
-        es_admin = 1 if rol_texto == "admin" else 0
+
+        if len(password) < 8:
+            messagebox.showwarning("Weak Password", "Password is too short. It must be at least 8 characters.")
+            return
+
+        if usuarioBD.UsuarioBD.existe_correo(correo):
+            messagebox.showerror("Duplicate Email", f"The email '{correo}' is already registered.")
+            return
+            
+        es_admin_num = 1 if rol_texto == "Admin" else 0
         
-        if usuarioBD.UsuarioBD.registrar(username, correo, password, es_admin):
-            messagebox.showinfo("Éxito", "Usuario creado correctamente.")
+        if usuarioBD.UsuarioBD.registrar(username, correo, password, es_admin_num):
+            messagebox.showinfo("Success", "User created successfully.")
             modal.destroy()
         else:
-            messagebox.showerror("Error", "No se pudo registrar el usuario.\nVerifique que el correo o el nombre de usuario no esté duplicado.")
+            messagebox.showerror("Error", "Could not register user.")
 
     # ==========================================
-    # 2. HERRAMIENTAS
+    # 2. HERRAMIENTAS TABLAS
     # ==========================================
     @staticmethod
     def ordenar_columna(tree, col, reverse):
-        """Ordena las columnas de la tabla numéricamente o alfabéticamente"""
+        """Ordena y limpia flechas"""
         l = [(tree.set(k, col), k) for k in tree.get_children('')]
-        
         try:
-            # Intenta ordenar como número (quitando signos de dinero)
             l.sort(key=lambda t: float(t[0].replace("$", "").replace(",", "")), reverse=reverse)
         except ValueError:
-            # Si falla, ordena como texto normal
             l.sort(reverse=reverse)
 
-        # Reordenar items
         for index, (val, k) in enumerate(l):
             tree.move(k, '', index)
 
-        # Limpiar flechas anteriores de todas las columnas
         for column in tree["columns"]:
             titulo_limpio = tree.heading(column)["text"].replace(" ▲", "").replace(" ▼", "")
             tree.heading(column, text=titulo_limpio)
 
-        # Agregar flecha a la columna actual
         flecha = " ▼" if reverse else " ▲"
-        titulo_nuevo = tree.heading(col)["text"] + flecha
-        tree.heading(col, text=titulo_nuevo, command=lambda: Funciones.ordenar_columna(tree, col, not reverse))
+        tree.heading(col, text=tree.heading(col)["text"] + flecha, command=lambda: Funciones.ordenar_columna(tree, col, not reverse))
 
     # ==========================================
     # 3. CLIENTES
     # ==========================================
     @staticmethod
     def llenar_tabla_clientes(tree, usuario, filtro_texto=""):
-        """Consulta los clientes y rellena el Treeview"""
-        for item in tree.get_children(): 
-            tree.delete(item)
+        for item in tree.get_children(): tree.delete(item)
+        id_usuario = usuario[0]; rol = usuario[5] 
+        rol_bd = 'admin' if rol == 'admin' else 'user'
         
-        id_usuario = usuario[0]
-        # El rol texto lo pusimos en la última posición en el login
-        rol = usuario[-1] 
-        
-        datos = clienteBD.ClienteBD.consultar(id_usuario, rol)
+        datos = clienteBD.ClienteBD.consultar(id_usuario, rol_bd)
         filtro = filtro_texto.lower() if filtro_texto else ""
         
         for row in datos:
-            # row[2] es Nombre Completo (concatenado por SQL, lo usamos SOLO para filtrar)
-            nombre_completo_busqueda = str(row[2]).lower()
-            
-            # Filtro de búsqueda
-            if filtro and filtro not in nombre_completo_busqueda:
-                continue 
-            
-            # DATOS REALES QUE VIENEN DEL MODELO (Indices ajustados al SQL de clienteBD):
-            # 0:id, 3:tel, 4:dir, 5:cor, 6:edad, 7:NOM, 8:PAT, 9:MAT
-            
-            # Insertamos en orden visual: ID, Nombre, Paterno, Materno, Tel, Dir, Correo, Edad
-            # OJO: row[7], row[8], row[9] son los campos separados que trae tu consulta SQL
-            tree.insert("", "end", text=row[0], values=(
-                row[0],   # ID
-                row[7],   # Nombre
-                row[8],   # Paterno
-                row[9],   # Materno
-                row[3],   # Teléfono
-                row[4],   # Dirección
-                row[5],   # Correo
-                row[6]    # Edad
-            ))
+            if filtro and filtro not in str(row[2]).lower(): continue 
+            tree.insert("", "end", text=row[0], values=(row[0], row[7], row[8], row[9], row[3], row[4], row[5], row[6]))
 
     @staticmethod
-    def guardar_o_editar_cliente(parent, tree, id_cliente, usuario_actual, nombre, pat, mat, telefono: int, direccion, correo, edad: int, modal, callback=None):
-        # Validaciones
-        if not nombre:
-            messagebox.showwarning("Atención", "El nombre es obligatorio.")
+    def guardar_o_editar_cliente(parent, tree, id_cliente, usuario_actual, nombre, pat, mat, telefono, direccion, correo, edad, modal, callback=None):
+        if not nombre or not pat or not telefono:
+            # CAMBIO: Mensaje en inglés
+            messagebox.showwarning("Missing Data", "Name, Last Name and Phone are required.")
             return
-        elif not pat:
-            messagebox.showwarning("Atencion", "El apellido paterno es obligatorio.")
-            return
-        elif not telefono or len(telefono) < 10:
-            messagebox.showwarning("Atencion", "El telefono es obligatorio y debe de componerse de 10 caracteres.")
-            return
-        elif not direccion:
-            messagebox.showwarning("Atencion", "La direccion es obligatoria.")
-            return
-        elif not correo:
-            messagebox.showwarning("Atencion", "El correo es obligatorio.")
-            return
-        elif not edad:
-            messagebox.showwarning("Atencion", "La edad es obligatoria.")
-            return
-        elif edad not in range(0, 100):
-            messagebox.showwarning("Atencion", "La Edad debe de estar en un rango entre 0 y 100 años.")
+
+        if not Funciones.es_nombre_valido(nombre) or not Funciones.es_nombre_valido(pat):
+            messagebox.showwarning("Invalid Text", "Names cannot contain numbers.")
             return
         
         try: 
             edad_int = int(edad) if edad else 0
-        except ValueError:
-            messagebox.showwarning("Error", "La edad debe ser un número.") 
+        except ValueError: 
+            messagebox.showwarning("Error", "Age must be a valid number.")
             return
 
-        # Guardar o Actualizar
         if id_cliente is None:
             exito = clienteBD.ClienteBD.insertar(usuario_actual[0], nombre, pat, mat, telefono, direccion, correo, edad_int)
-            msg = "Cliente registrado."
+            msg = "Client registered successfully."
         else:
             exito = clienteBD.ClienteBD.actualizar(id_cliente, nombre, pat, mat, telefono, direccion, correo, edad_int)
-            msg = "Cliente actualizado."
-        
+            msg = "Client updated successfully."
+
         if exito:
-            messagebox.showinfo("Éxito", msg)
+            messagebox.showinfo("Success", msg)
             modal.destroy()
-            
-            # Actualizar la tabla si existe (pantalla clientes)
-            if tree: 
-                Funciones.llenar_tabla_clientes(tree, usuario_actual)
-            # Ejecutar callback si existe (pantalla ventas)
-            if callback: 
-                callback()
+            if tree: Funciones.llenar_tabla_clientes(tree, usuario_actual)
+            if callback: callback()
         else:
-            messagebox.showerror("Error", "Ocurrió un error en la base de datos. (Revisa que el correo no sea duplicado)")
+            messagebox.showerror("Error", "Database Error.")
 
     @staticmethod
     def borrar_cliente_tabla(window, usuario, id_cliente, tree):
-        if not id_cliente or not usuario: return
-        
-        if messagebox.askyesno("Confirmar", "¿Está seguro de eliminar este cliente?"):
+        if not id_cliente: return
+        # CAMBIO: Mensaje en inglés
+        if messagebox.askyesno("Confirm Delete", "Are you sure you want to delete this client?\nThis action cannot be undone."):
             if clienteBD.ClienteBD.eliminar(id_cliente):
-                messagebox.showinfo("Éxito", "Cliente eliminado correctamente.")
+                messagebox.showinfo("Success", "Client deleted.")
                 Funciones.llenar_tabla_clientes(tree, usuario)
             else:
-                messagebox.showerror("Error", "No se pudo eliminar el cliente.")
+                messagebox.showerror("Error", "Could not delete client (Check for existing sales).")
 
     # ==========================================
     # 4. VENTAS
     # ==========================================
     @staticmethod
     def llenar_tabla_ventas(tree, usuario, fecha_filtro=None):
-        """Consulta las ventas y rellena el Treeview"""
-        for item in tree.get_children(): 
-            tree.delete(item)
-        
-        id_usuario = usuario[0]
+        for item in tree.get_children(): tree.delete(item)
+        id_usu = usuario[0]
         rol = usuario[5]
+        rol_bd = 'admin' if rol == 'admin' else 'user'
         
-        datos = ventaBD.VentaBD.consultar_ventas(id_usuario, rol, fecha_filtro)
+        datos = ventaBD.VentaBD.consultar_ventas(id_usu, rol_bd, fecha_filtro)
         
         for row in datos:
-            # Traducir el número de pago a texto (1 -> Efectivo)
-            texto_pago = Funciones.MAPA_PAGO_TXT.get(row[4], "Otro")
-            
-            # Formatear dinero
-            monto_fmt = f"${row[2]}"
-            
-            # Insertar datos. IMPORTANTE: row[6] es el ID oculto del cliente
-            tree.insert("", "end", text=row[0], values=(row[0], row[7], row[1], monto_fmt, row[3], texto_pago, row[5], row[6]))
+            # Traducir pago (1 -> Cash)
+            txt_pago = Funciones.MAPA_PAGO_TXT.get(row[4], "Unknown")
+            tree.insert("", "end", text=row[0], values=(row[0], row[7], row[1], f"${row[2]}", row[3], txt_pago, row[5], row[6]))
 
     @staticmethod
-    def guardar_o_editar_venta(window, tree, usuario, id_venta, cliente_str, monto, prendas, pago_txt, modal):
-        if not cliente_str:
-            messagebox.showwarning("Atención", "Es necesario proporcionar el nombre del cliente.")
+    def guardar_o_editar_venta(window, tree, usuario, id_venta, cli_str, monto, prendas, pago_txt, modal):
+        if not cli_str or not monto: 
+            messagebox.showwarning("Attention", "Missing sales data.")
             return
-        elif monto <= 0 or monto >= 10000: 
-            messagebox.showwarning("Atención", "Monto fuera de rango (Max: 10,000)")
-            return
-        elif prendas not in range(1, 100):
-            messagebox.showwarning("Atención", "Cantidad de prendas fuera de rango (1-100).")
-            return
-            
         try:
-            # Obtener ID del cliente del string "ID - Nombre"
-            id_cliente = cliente_str.split(" - ")[0]
-            # Obtener ID del pago (Texto -> Número)
+            id_cli = cli_str.split(" - ")[0]
+            # Convertir Texto a ID (Cash -> 1)
             id_pago = Funciones.MAPA_PAGO_BD.get(pago_txt, 1)
             
             if id_venta is None:
-                exito = ventaBD.VentaBD.registrar_venta(usuario[0], id_cliente, float(monto), int(prendas), id_pago)
-                msg = "Venta registrada exitosamente."
+                exito = ventaBD.VentaBD.registrar_venta(usuario[0], id_cli, float(monto), int(prendas), id_pago)
+                msg = "Sale registered successfully."
             else:
-                exito = ventaBD.VentaBD.actualizar_venta(id_venta, id_cliente, float(monto), int(prendas), id_pago)
-                msg = "Venta actualizada correctamente."
+                exito = ventaBD.VentaBD.actualizar_venta(id_venta, id_cli, float(monto), int(prendas), id_pago)
+                msg = "Sale updated successfully."
             
             if exito:
-                messagebox.showinfo("Éxito", msg)
+                messagebox.showinfo("Success", msg)
                 modal.destroy()
                 Funciones.llenar_tabla_ventas(tree, usuario)
             else:
-                messagebox.showerror("Error", "Error al guardar en la base de datos.")
+                messagebox.showerror("Error", "Database Error.")
                 
         except ValueError:
-            messagebox.showerror("Error", "El monto y las prendas deben ser números válidos.")
-
+            messagebox.showerror("Error", "Invalid numbers.")
+        
     @staticmethod
     def borrar_venta_tabla(window, usuario, id_venta, tree):
         if not id_venta: return
-        
-        if messagebox.askyesno("Confirmar", "¿Desea anular esta venta?"):
+        if messagebox.askyesno("Confirm Void", "Do you want to void this sale?"):
             if ventaBD.VentaBD.eliminar_venta(id_venta):
-                messagebox.showinfo("Éxito", "Venta anulada correctamente.")
+                messagebox.showinfo("Success", "Sale voided.")
                 Funciones.llenar_tabla_ventas(tree, usuario)
             else:
-                messagebox.showerror("Error", "No se pudo anular la venta.")
+                messagebox.showerror("Error", "Could not void sale.")

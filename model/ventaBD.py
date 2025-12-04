@@ -19,7 +19,7 @@ class VentaBD:
             return True
         except Exception as e:
             conexion.rollback()
-            print(f"Error Registrar Venta: {e}")
+            print(f"Error Registering Sale: {e}")
             return False
 
     @staticmethod
@@ -63,7 +63,7 @@ class VentaBD:
             return cursor.fetchall()
             
         except Exception as e:
-            print(f"Error Consultar Ventas: {e}")
+            print(f"Error consulting sale: {e}")
             return []
 
     @staticmethod
@@ -81,7 +81,7 @@ class VentaBD:
             return True
         except Exception as e:
             conexion.rollback()
-            print(f"Error Update Venta: {e}")
+            print(f"Error Updating sale: {e}")
             return False
 
     @staticmethod
