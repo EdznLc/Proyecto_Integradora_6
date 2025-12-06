@@ -176,6 +176,11 @@ class Vista:
     # 2. DASHBOARD
     # ==========================================
     @staticmethod
+    def confirmar_logout(window):
+        if messagebox.askyesno("Confirm Logout", "Are you sure you want to log out?"):
+            Vista.login(window)
+
+    @staticmethod
     def menu_principal(window, usuario=None):
         Vista.borrar_pantalla(window); window.config(bg=BG_APP)
         nombre_usu = usuario[1] if usuario else "User"
@@ -184,7 +189,7 @@ class Vista:
         # Header
         nav = tk.Frame(window, bg="white", height=60, padx=30); nav.pack(fill="x")
         if Vista.logo_img: tk.Label(nav, text=" Bonitas Fashions", font=("Gabriola", 22, "bold"), bg="white", fg=COLOR_PRIMARY).pack(side="left")
-        tk.Button(nav, text="Log Out", bg="white", fg=COLOR_TEXT_MAIN, bd=0, font=FONT_BOLD, cursor="hand2", command=lambda: Vista.login(window)).pack(side="right")
+        tk.Button(nav, text="Log Out", bg="white", fg=COLOR_TEXT_MAIN, bd=0, font=FONT_BOLD, cursor="hand2", command=lambda: Vista.confirmar_logout(window)).pack(side="right")
         
         # Content
         content = tk.Frame(window, bg=BG_APP); content.pack(expand=True)
