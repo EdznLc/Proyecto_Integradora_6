@@ -52,7 +52,7 @@ class Vista:
         try:
             if os.path.exists("logo.png"):
                 img_temp = tk.PhotoImage(file="logo.png")
-                Vista.logo_img = img_temp.subsample(3, 3) 
+                Vista.logo_img = img_temp.subsample(4, 4) 
         except Exception as e:
             print(f"Note: logo.png not found ({e})")
 
