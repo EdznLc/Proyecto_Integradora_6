@@ -49,6 +49,7 @@ class ClienteBD:
                 sql += " WHERE c.id_usuario_registro = %s"
                 cursor.execute(sql, (id_usuario,))
             else:
+                sql+="ORDER BY c.id_cliente ASC"
                 cursor.execute(sql)
                 
             return cursor.fetchall()
