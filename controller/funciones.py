@@ -59,10 +59,6 @@ class Funciones:
             messagebox.showwarning("Attention", "All fields are required.")
             return
 
-        if not Funciones.es_nombre_valido(username):
-            messagebox.showwarning("Invalid Username", "Username can only contain letters and spaces.")
-            return
-
         if not Funciones.es_correo_valido(correo):
             messagebox.showwarning("Invalid Email", "The email format is invalid (example@mail.com).")
             return
@@ -132,6 +128,9 @@ class Funciones:
             return
         elif not pat:
             messagebox.showwarning("Attention", "The first last name is obligatory.")
+            return
+        if not Funciones.es_nombre_valido(nombre) or not Funciones.es_nombre_valido(pat):
+            messagebox.showwarning("Invalid Text", "Names cannot contain numbers.")
             return
         elif not telefono or len(telefono) < 10:
             messagebox.showwarning("Attention", "The phone is obligatory and must consist of 10 digits.")
