@@ -67,9 +67,13 @@ class Funciones:
             messagebox.showwarning("Invalid Email", "The email format is invalid (example@mail.com).")
             return
 
-        if len(password) < 8:
-            messagebox.showwarning("Weak Password", "Password is too short. It must be at least 8 characters.")
-            return
+        elif len(password) not in range(8, 21):
+            if len(password) < 8:
+                messagebox.showwarning("Attention", "Password is too short. It must be at least 8 characters.")
+                return
+            else:
+                messagebox.showwarning("Attention", "Password is too long. It must be at most 20 characters.")
+                return
 
         if usuarioBD.UsuarioBD.existe_correo(correo):
             messagebox.showerror("Duplicate Email", f"The email '{correo}' is already registered.")
@@ -123,13 +127,26 @@ class Funciones:
 
     @staticmethod
     def guardar_o_editar_cliente(parent, tree, id_cliente, usuario_actual, nombre, pat, mat, telefono, direccion, correo, edad, modal, callback=None):
-        if not nombre or not pat or not telefono:
-            # CAMBIO: Mensaje en inglés
-            messagebox.showwarning("Missing Data", "Name, Last Name and Phone are required.")
+        if not nombre:
+            messagebox.showwarning("Attention", "Name is obligatory.")
             return
-
-        if not Funciones.es_nombre_valido(nombre) or not Funciones.es_nombre_valido(pat):
-            messagebox.showwarning("Invalid Text", "Names cannot contain numbers.")
+        elif not pat:
+            messagebox.showwarning("Attention", "The first last name is obligatory.")
+            return
+        elif not telefono or len(telefono) < 10:
+            messagebox.showwarning("Attention", "The phone is obligatory and must consist of 10 digits.")
+            return
+        elif not direccion:
+            messagebox.showwarning("Attention", "The address is obligatory.")
+            return
+        elif not correo:
+            messagebox.showwarning("Attention", "The email is obligatory")
+            return
+        elif not edad:
+            messagebox.showwarning("Attention", "The age is obligatory")
+            return
+        elif edad not in range(0, 100):
+            messagebox.showwarning("Attention", "The age must be in the range of 1-100.")
             return
         
         try: 
@@ -183,9 +200,16 @@ class Funciones:
 
     @staticmethod
     def guardar_o_editar_venta(window, tree, usuario, id_venta, cli_str, monto, prendas, pago_txt, modal):
-        if not cli_str or not monto: 
-            messagebox.showwarning("Attention", "Missing sales data.")
+        if not cli_str:
+            messagebox.showwarning("Attention", "The client name is obligatory.")
             return
+        elif monto <= 0 or monto >= 10000: 
+            messagebox.showwarning("Atención", "Total out of range (Max: 10,000)")
+            return
+        elif prendas not in range(1, 100):
+            messagebox.showwarning("Atención", "Amount out of range (1-100).")
+            return
+    
         try:
             id_cli = cli_str.split(" - ")[0]
             # Convertir Texto a ID (Cash -> 1)
